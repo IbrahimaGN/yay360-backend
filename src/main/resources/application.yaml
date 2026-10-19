@@ -1,0 +1,64 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: yay360-api
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/yay360
+    username: postgres
+    password: admin123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  jackson:
+    time-zone: Africa/Dakar
+    date-format: yyyy-MM-dd'T'HH:mm:ss
+
+jwt:
+  secret: OeYl3Qa9YQ46jFgUdJzlhk+D19O3AN5EzocKa21yakX6ISp2hdFrtmYnCd/6de97
+  expiration: 86400000   # 24h en millisecondes
+  reset-token-expiration: 3600000  # 1h en millisecondes
+
+yay360:
+  assistant:
+    enabled: ${YAY360_ASSISTANT_ENABLED:false}
+    endpoint: ${YAY360_ASSISTANT_ENDPOINT:https://api.openai.com/v1/chat/completions}
+    api-key: ${YAY360_ASSISTANT_API_KEY:}
+    model: ${YAY360_ASSISTANT_MODEL:gpt-4o-mini}
+    transcription-endpoint: ${YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT:https://api.openai.com/v1/audio/transcriptions}
+    transcription-model: ${YAY360_ASSISTANT_TRANSCRIPTION_MODEL:whisper-1}
+    transcription-language: ${YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE:fr}
+    speech-endpoint: ${YAY360_ASSISTANT_SPEECH_ENDPOINT:https://api.openai.com/v1/audio/speech}
+    speech-model: ${YAY360_ASSISTANT_SPEECH_MODEL:tts-1}
+    speech-voice: ${YAY360_ASSISTANT_SPEECH_VOICE:alloy}
+    max-audio-bytes: ${YAY360_ASSISTANT_MAX_AUDIO_BYTES:10485760}
+    connect-timeout: 5s
+    read-timeout: 30s
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    sn.yay360.api: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

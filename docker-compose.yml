@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  yay360-db:
+    image: postgres:16-alpine
+    container_name: yay360-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: yay360
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - yay360-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d yay360"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  yay360-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yay360-api
+    restart: unless-stopped
+    depends_on:
+      yay360-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://yay360-db:5432/yay360
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      YAY360_ASSISTANT_ENABLED: ${YAY360_ASSISTANT_ENABLED:-false}
+      YAY360_ASSISTANT_ENDPOINT: ${YAY360_ASSISTANT_ENDPOINT:-https://api.openai.com/v1/chat/completions}
+      YAY360_ASSISTANT_API_KEY: ${YAY360_ASSISTANT_API_KEY:-}
+      YAY360_ASSISTANT_MODEL: ${YAY360_ASSISTANT_MODEL:-gpt-4o-mini}
+      YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT: ${YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT:-https://api.openai.com/v1/audio/transcriptions}
+      YAY360_ASSISTANT_TRANSCRIPTION_MODEL: ${YAY360_ASSISTANT_TRANSCRIPTION_MODEL:-whisper-1}
+      YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE: ${YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE:-fr}
+      YAY360_ASSISTANT_SPEECH_ENDPOINT: ${YAY360_ASSISTANT_SPEECH_ENDPOINT:-https://api.openai.com/v1/audio/speech}
+      YAY360_ASSISTANT_SPEECH_MODEL: ${YAY360_ASSISTANT_SPEECH_MODEL:-tts-1}
+      YAY360_ASSISTANT_SPEECH_VOICE: ${YAY360_ASSISTANT_SPEECH_VOICE:-alloy}
+      YAY360_ASSISTANT_MAX_AUDIO_BYTES: ${YAY360_ASSISTANT_MAX_AUDIO_BYTES:-10485760}
+    ports:
+      - "8080:8080"
+
+  # Suppose que le dossier yay360-web est au même niveau que yay360-backend :
+  # Memoire/
+  #   ├── yay360-backend/   (ce docker-compose.yml)
+  #   └── yay360-web/
+  yay360-web:
+    build:
+      context: ../yay360-web
+      dockerfile: Dockerfile
+    container_name: yay360-web
+    restart: unless-stopped
+    depends_on:
+      - yay360-api
+    ports:
+      - "4200:80"
+
+volumes:
+  yay360-db-data:

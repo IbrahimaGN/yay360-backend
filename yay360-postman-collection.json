@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "YAY360 API",
+    "description": "Collection Postman - Plateforme intelligente de suivi de la santé maternelle",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentification",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@yay360.sn\",\n  \"password\": \"Admin@2026\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Inscription Femme Enceinte",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Ndiaye\",\n  \"prenom\": \"Fatou\",\n  \"email\": \"fatou.ndiaye@yay360.sn\",\n  \"password\": \"motdepasse123\",\n  \"telephone\": \"+221771234567\",\n  \"dateNaissance\": \"2000-05-10\",\n  \"role\": \"FEMME_ENCEINTE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Inscription Médecin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Sarr\",\n  \"prenom\": \"Moussa\",\n  \"email\": \"moussa.sarr@yay360.sn\",\n  \"password\": \"motdepasse123\",\n  \"telephone\": \"+221781234567\",\n  \"dateNaissance\": \"1985-03-20\",\n  \"role\": \"MEDECIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"fatou.ndiaye@yay360.sn\",\n  \"password\": \"motdepasse123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Mot de passe oublié",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"fatou.ndiaye@yay360.sn\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Utilisateurs",
+      "item": [
+        {
+          "name": "Mon profil",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/utilisateurs/profil", "host": ["{{baseUrl}}"], "path": ["utilisateurs", "profil"] }
+          }
+        },
+        {
+          "name": "Lister tous (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/utilisateurs", "host": ["{{baseUrl}}"], "path": ["utilisateurs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Grossesses",
+      "item": [
+        {
+          "name": "Déclarer une grossesse",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateDernieresRegles\": \"2026-05-01\",\n  \"nombreGrossessesPrecedentes\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/grossesses", "host": ["{{baseUrl}}"], "path": ["grossesses"] }
+          }
+        },
+        {
+          "name": "Ma grossesse",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/grossesses/ma-grossesse", "host": ["{{baseUrl}}"], "path": ["grossesses", "ma-grossesse"] }
+          }
+        },
+        {
+          "name": "Mon calendrier intelligent",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/grossesses/mon-calendrier", "host": ["{{baseUrl}}"], "path": ["grossesses", "mon-calendrier"] }
+          }
+        },
+        {
+          "name": "Mon suivi hebdomadaire",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/grossesses/mon-suivi", "host": ["{{baseUrl}}"], "path": ["grossesses", "mon-suivi"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Étapes & Conseils",
+      "item": [
+        {
+          "name": "Lister les étapes (1-42)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/etapes-grossesse", "host": ["{{baseUrl}}"], "path": ["etapes-grossesse"] }
+          }
+        },
+        {
+          "name": "Conseils pour une semaine",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/conseils/semaine/10", "host": ["{{baseUrl}}"], "path": ["conseils", "semaine", "10"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Établissements",
+      "item": [
+        {
+          "name": "Lister les établissements",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/etablissements", "host": ["{{baseUrl}}"], "path": ["etablissements"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Rendez-vous",
+      "item": [
+        {
+          "name": "Prendre un rendez-vous",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateHeure\": \"2026-08-15T09:00:00\",\n  \"type\": \"CONSULTATION_PRENATALE\",\n  \"motif\": \"Consultation de suivi\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/rendez-vous", "host": ["{{baseUrl}}"], "path": ["rendez-vous"] }
+          }
+        },
+        {
+          "name": "Mes rendez-vous",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/rendez-vous/mes-rendez-vous", "host": ["{{baseUrl}}"], "path": ["rendez-vous", "mes-rendez-vous"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Consultations",
+      "item": [
+        {
+          "name": "Mes consultations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/consultations/mes-consultations", "host": ["{{baseUrl}}"], "path": ["consultations", "mes-consultations"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Alertes & Notifications",
+      "item": [
+        {
+          "name": "Déclarer un symptôme",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"typeSymptome\": \"SAIGNEMENTS\",\n  \"description\": \"Saignements légers depuis ce matin\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/alertes", "host": ["{{baseUrl}}"], "path": ["alertes"] }
+          }
+        },
+        {
+          "name": "Mes notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/notifications", "host": ["{{baseUrl}}"], "path": ["notifications"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Dashboard (Admin)",
+      "item": [
+        {
+          "name": "Tableau de bord",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard", "host": ["{{baseUrl}}"], "path": ["dashboard"] }
+          }
+        }
+      ]
+    }
+  ]
+}
