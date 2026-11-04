@@ -17,4 +17,6 @@ public class LoginResponse {
     private String nom;
     private String prenom;
     private String role;
+    /** true si le mot de passe a été généré par un administrateur et doit être changé. */
+    private boolean motDePasseTemporaire;
 }

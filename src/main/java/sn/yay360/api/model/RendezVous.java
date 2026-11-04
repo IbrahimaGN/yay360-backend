@@ -19,6 +19,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RendezVous {
 
+    /** Verrouillage optimiste : deux soignants ne peuvent pas modifier la même ligne en même temps. */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +58,10 @@ public class RendezVous {
 
     @Column(name = "notes_annulation", columnDefinition = "TEXT")
     private String notesAnnulation;
+
+    /** Évite d'envoyer deux fois le rappel 24 h (remis à false en cas de report). */
+    @Column(name = "rappel_envoye")
+    private Boolean rappelEnvoye = false;
 
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;

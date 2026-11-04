@@ -21,5 +21,9 @@ public class DeclarerGrossesseRequest {
     @Max(value = 20, message = "Le nombre de grossesses précédentes semble invalide")
     private Integer nombreGrossessesPrecedentes;
 
+    @jakarta.validation.constraints.Size(max = 2000, message = "Les antécédents ne doivent pas dépasser 2000 caractères")
     private String antecedents;
+
+    /** Établissement de suivi choisi par la patiente (facultatif, modifiable ensuite). */
+    private Long etablissementId;
 }

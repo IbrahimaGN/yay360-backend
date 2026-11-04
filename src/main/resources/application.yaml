@@ -4,56 +4,100 @@ server:
 spring:
   application:
     name: yay360-api
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 11MB
+  # En local, les secrets sont lus depuis le fichier .env (non versionné, voir .env.example).
+  # Sous Docker, ils sont injectés par docker-compose.
+  config:
+    import: optional:file:.env[.properties]
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/yay360
-    username: postgres
-    password: admin123
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/yay360}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    # Pas de session JPA ouverte pendant toute la requête HTTP : les accès à la base
+    # se font dans les transactions des helpers (connexions libérées au plus tôt).
+    open-in-view: false
     hibernate:
-      ddl-auto: update
+      # Le schéma est géré par Flyway (src/main/resources/db/migration) ; Hibernate vérifie seulement
+      # que les entités correspondent aux tables.
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
         format_sql: false
+        # Chargement groupé des relations paresseuses : évite les requêtes N+1 dans les listes
+        default_batch_fetch_size: 50
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    # Base existante créée avant Flyway : elle est considérée comme étant au niveau V1.
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  # SMTP facultatif : sans SMTP_HOST, aucun email n'est envoyé.
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
 
   jackson:
     time-zone: Africa/Dakar
     date-format: yyyy-MM-dd'T'HH:mm:ss
 
 jwt:
-  secret: OeYl3Qa9YQ46jFgUdJzlhk+D19O3AN5EzocKa21yakX6ISp2hdFrtmYnCd/6de97
-  expiration: 86400000   # 24h en millisecondes
-  reset-token-expiration: 3600000  # 1h en millisecondes
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}   # 24h en millisecondes
+  reset-token-expiration: ${JWT_RESET_TOKEN_EXPIRATION:3600000}  # 1h en millisecondes
 
 yay360:
-  assistant:
-    enabled: ${YAY360_ASSISTANT_ENABLED:false}
-    endpoint: ${YAY360_ASSISTANT_ENDPOINT:https://api.openai.com/v1/chat/completions}
-    api-key: ${YAY360_ASSISTANT_API_KEY:}
-    model: ${YAY360_ASSISTANT_MODEL:gpt-4o-mini}
-    transcription-endpoint: ${YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT:https://api.openai.com/v1/audio/transcriptions}
-    transcription-model: ${YAY360_ASSISTANT_TRANSCRIPTION_MODEL:whisper-1}
-    transcription-language: ${YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE:fr}
-    speech-endpoint: ${YAY360_ASSISTANT_SPEECH_ENDPOINT:https://api.openai.com/v1/audio/speech}
-    speech-model: ${YAY360_ASSISTANT_SPEECH_MODEL:tts-1}
-    speech-voice: ${YAY360_ASSISTANT_SPEECH_VOICE:alloy}
-    max-audio-bytes: ${YAY360_ASSISTANT_MAX_AUDIO_BYTES:10485760}
-    connect-timeout: 5s
-    read-timeout: 30s
+  cors:
+    # Origines autorisées (séparées par des virgules). En production : les domaines réels uniquement.
+    origines: ${YAY360_CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*,http://10.0.2.2:*}
+  # URL du front web, utilisée pour construire les liens envoyés par email.
+  frontend-url: ${YAY360_FRONTEND_URL:http://localhost:4200}
+  mail:
+    from: ${YAY360_MAIL_FROM:no-reply@yay360.sn}
+    # DÉVELOPPEMENT UNIQUEMENT : sans SMTP, écrit les liens (reset, invitation) dans les logs.
+    journaliser-liens: ${YAY360_MAIL_JOURNALISER_LIENS:false}
+  securite:
+    # Verrouillage temporaire après plusieurs échecs de connexion
+    tentatives-max: ${YAY360_TENTATIVES_MAX:5}
+    duree-verrouillage-minutes: ${YAY360_DUREE_VERROUILLAGE_MINUTES:15}
+  admin:
+    # Mot de passe du compte admin créé au premier démarrage.
+    # Vide : un mot de passe aléatoire est généré et affiché une seule fois dans les logs.
+    password: ${YAY360_ADMIN_PASSWORD:}
+  demo-data:
+    enabled: ${YAY360_DEMO_DATA_ENABLED:false}
+    password: ${YAY360_DEMO_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    # L'email est facultatif : un SMTP absent ne doit pas rendre l'API « DOWN »
+    mail:
+      enabled: false
 
 springdoc:
   api-docs:
     path: /api-docs
+    enabled: ${YAY360_SWAGGER_ENABLED:false}
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${YAY360_SWAGGER_ENABLED:false}
 
 logging:
   level:

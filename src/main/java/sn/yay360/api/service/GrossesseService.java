@@ -1,9 +1,6 @@
 package sn.yay360.api.service;
 
-import sn.yay360.api.dto.DeclarerGrossesseRequest;
-import sn.yay360.api.dto.DeclarerRisqueRequest;
-import sn.yay360.api.dto.GrossesseDto;
-import sn.yay360.api.dto.TerminerGrossesseRequest;
+import sn.yay360.api.dto.*;
 
 import java.util.List;
 
@@ -15,15 +12,21 @@ public interface GrossesseService {
 
     List<GrossesseDto> obtenirHistorique(String emailFemme);
 
-    GrossesseDto obtenirParId(Long id);
+    GrossesseDto choisirEtablissement(String emailFemme, ChoisirEtablissementRequest request);
 
-    List<GrossesseDto> listerActives();
+    GrossesseDto obtenirParId(String email, Long id);
 
-    List<GrossesseDto> listerARisque();
+    List<GrossesseDto> listerActives(String email);
 
-    GrossesseDto declarerARisque(Long id, DeclarerRisqueRequest request);
+    List<GrossesseDto> listerARisque(String email);
 
-    GrossesseDto retirerRisque(Long id);
+    List<PatienteRechercheDto> rechercherPatiente(String emailProfessionnel, String telephone, String email);
 
-    GrossesseDto terminer(Long id, TerminerGrossesseRequest request);
+    GrossesseDto rattacher(String emailProfessionnel, Long id, RattacherGrossesseRequest request);
+
+    GrossesseDto declarerARisque(String emailMedecin, Long id, DeclarerRisqueRequest request);
+
+    GrossesseDto retirerRisque(String emailMedecin, Long id);
+
+    GrossesseDto terminer(String emailMedecin, Long id, TerminerGrossesseRequest request);
 }

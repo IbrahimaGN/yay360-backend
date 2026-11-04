@@ -12,4 +12,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByDestinataireIdAndLueFalseOrderByDateEnvoiDesc(Long destinataireId);
 
     long countByDestinataireIdAndLueFalse(Long destinataireId);
+
+    boolean existsByDestinataireIdAndGrossesseIdAndTitre(Long destinataireId, Long grossesseId, String titre);
 }

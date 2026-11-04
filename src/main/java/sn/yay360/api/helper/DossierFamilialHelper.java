@@ -1,6 +1,10 @@
 package sn.yay360.api.helper;
 
 import sn.yay360.api.dto.InvitationConjointRequest;
+import sn.yay360.api.dto.InvitationConjointResponse;
+import sn.yay360.api.security.JetonSecurise;
+import sn.yay360.api.service.EmailService;
+import org.springframework.beans.factory.annotation.Value;
 import sn.yay360.api.exception.OperationNonAutoriseeException;
 import sn.yay360.api.exception.ResourceNotFoundException;
 import sn.yay360.api.model.InvitationConjoint;
@@ -13,22 +17,27 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
+@Transactional
 public class DossierFamilialHelper {
 
     private final UtilisateurRepository utilisateurRepository;
     private final InvitationConjointRepository invitationRepository;
+    private final EmailService emailService;
+
+    static final long DUREE_VALIDITE_HEURES = 72;
+
+    @Value("${yay360.frontend-url:http://localhost:4200}")
+    private String frontendUrl = "http://localhost:4200";
 
     @PreAuthorize("hasAuthority('FEMME_ENCEINTE')")
     @Transactional
-    public void inviterConjoint(String emailFemme, InvitationConjointRequest request) {
-        Utilisateur femme = utilisateurRepository.findByEmail(emailFemme)
+    public InvitationConjointResponse inviterConjoint(String emailFemme, InvitationConjointRequest request) {
+        Utilisateur femme = utilisateurRepository.findByEmailIgnoreCase(emailFemme)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + emailFemme));
         String emailConjoint = request.getEmail().trim().toLowerCase(Locale.ROOT);
         if (utilisateurRepository.existsByEmailIgnoreCase(emailConjoint)) {
@@ -42,26 +51,31 @@ public class DossierFamilialHelper {
             throw new OperationNonAutoriseeException("Une invitation est déjà en attente pour cet email");
         }
 
-        byte[] random = new byte[32];
-        new SecureRandom().nextBytes(random);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+        String code = JetonSecurise.generer();
         InvitationConjoint invitation = new InvitationConjoint();
         invitation.setFemme(femme);
         invitation.setEmail(emailConjoint);
-        invitation.setToken(token);
-        invitation.setDateExpiration(LocalDateTime.now().plusHours(72));
+        invitation.setToken(JetonSecurise.hacher(code)); // seule l'empreinte est stockée
+        invitation.setDateExpiration(LocalDateTime.now().plusHours(DUREE_VALIDITE_HEURES));
         invitation.setAcceptee(false);
         invitationRepository.save(invitation);
 
-        System.out.println("=== [YAY360] Invitation du conjoint (envoi email à intégrer) ===");
-        System.out.println("Destinataire : " + emailConjoint);
-        System.out.println("Lien/code d'acceptation : " + token);
-        System.out.println("Expiration : " + invitation.getDateExpiration());
-        System.out.println("=================================================================");
+        String lien = frontendUrl + "/accepter-invitation-conjoint?token=" + code;
+        emailService.envoyer(emailConjoint, "YAY360 — Invitation à suivre la grossesse de " + femme.getPrenom(),
+                femme.getPrenom() + " " + femme.getNom() + " vous invite à rejoindre son dossier de suivi de grossesse"
+                        + " sur YAY360.\n\nCréez votre compte avec ce lien (valable " + DUREE_VALIDITE_HEURES
+                        + " heures, utilisable une seule fois) :\n" + lien,
+                lien);
+
+        boolean emailEnvoye = emailService.estConfigure();
+        String message = emailEnvoye
+                ? "Invitation envoyée par email. Le code est valable 72 heures."
+                : "Invitation créée. Transmettez ce code à votre conjoint : il est valable 72 heures.";
+        return new InvitationConjointResponse(message, code, invitation.getDateExpiration(), emailEnvoye);
     }
 
     public Utilisateur trouverFemmeAssociee(String email) {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+        Utilisateur utilisateur = utilisateurRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + email));
         if (RoleUtilisateur.FEMME_ENCEINTE.equals(utilisateur.getRole())) {
             return utilisateur;

@@ -60,12 +60,34 @@ public class Utilisateur {
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
 
-    // --- Réinitialisation de mot de passe ---
+    // --- Réinitialisation de mot de passe (seule l'empreinte SHA-256 du jeton est stockée) ---
     @Column(name = "reset_token")
     private String resetToken;
 
     @Column(name = "reset_token_expiration")
     private LocalDateTime resetTokenExpiration;
+
+    // --- Sécurité de l'authentification ---
+    /** Les JWT émis avant cette date sont refusés (changement / réinitialisation du mot de passe). */
+    @Column(name = "date_changement_mot_de_passe")
+    private LocalDateTime dateChangementMotDePasse;
+
+    /**
+     * Version des jetons : incrémentée à chaque changement de mot de passe. Un JWT portant
+     * une version différente est refusé (révocation immédiate de toutes les sessions).
+     */
+    @Column(name = "version_jeton")
+    private Integer versionJeton = 0;
+
+    /** Mot de passe initial généré par l'admin : à changer à la première connexion. */
+    @Column(name = "mot_de_passe_temporaire")
+    private Boolean motDePasseTemporaire = false;
+
+    @Column(name = "tentatives_connexion_echouees")
+    private Integer tentativesConnexionEchouees = 0;
+
+    @Column(name = "verrouille_jusqua")
+    private LocalDateTime verrouilleJusqua;
 
     @PrePersist
     protected void onCreate() {

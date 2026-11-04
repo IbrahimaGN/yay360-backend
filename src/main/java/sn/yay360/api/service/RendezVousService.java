@@ -8,15 +8,17 @@ public interface RendezVousService {
 
     RendezVousDto prendre(String emailFemme, PrendreRendezVousRequest request);
 
+    RendezVousDto planifier(String emailProfessionnel, PlanifierRendezVousRequest request);
+
     List<RendezVousDto> mesRendezVous(String emailFemme);
 
     List<RendezVousDto> mesRendezVousAVenir(String emailFemme);
 
     List<RendezVousDto> rendezVousDuProfessionnel(String emailProfessionnel);
 
-    List<RendezVousDto> listerParStatut(String statut);
+    List<RendezVousDto> listerParStatut(String email, String statut);
 
-    List<RendezVousDto> listerParGrossesse(Long grossesseId);
+    List<RendezVousDto> listerParGrossesse(String email, Long grossesseId);
 
     RendezVousDto obtenirParId(String email, Long id);
 
@@ -24,5 +26,5 @@ public interface RendezVousService {
 
     RendezVousDto annuler(String email, Long id, AnnulerRendezVousRequest request);
 
-    RendezVousDto changerStatut(Long id, ChangerStatutRendezVousRequest request);
+    RendezVousDto changerStatut(String emailProfessionnel, Long id, ChangerStatutRendezVousRequest request);
 }

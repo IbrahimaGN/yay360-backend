@@ -10,6 +10,8 @@ public class TypeSymptome {
     public static final String MAUX_DE_TETE_INTENSES = "MAUX_DE_TETE_INTENSES";
     public static final String OEDEMES_SOUDAINS = "OEDEMES_SOUDAINS";
     public static final String VOMISSEMENTS_SEVERES = "VOMISSEMENTS_SEVERES";
+    public static final String TROUBLES_VISUELS = "TROUBLES_VISUELS";
+    public static final String CONVULSIONS = "CONVULSIONS";
     public static final String AUTRE = "AUTRE";
 
     private TypeSymptome() {

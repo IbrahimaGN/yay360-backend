@@ -11,6 +11,7 @@ import sn.yay360.api.repo.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
+@Transactional
 public class ConseilHelper {
 
     private final ConseilGrossesseRepository conseilRepository;
@@ -52,7 +54,7 @@ public class ConseilHelper {
 
     @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     public ConseilDto creer(String emailAuteur, ConseilRequest request) {
-        Utilisateur auteur = utilisateurRepository.findByEmail(emailAuteur)
+        Utilisateur auteur = utilisateurRepository.findByEmailIgnoreCase(emailAuteur)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + emailAuteur));
 
         if (request.getSemaineDebut() > request.getSemaineFin()) {

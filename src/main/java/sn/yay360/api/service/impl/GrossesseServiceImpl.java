@@ -1,9 +1,6 @@
 package sn.yay360.api.service.impl;
 
-import sn.yay360.api.dto.DeclarerGrossesseRequest;
-import sn.yay360.api.dto.DeclarerRisqueRequest;
-import sn.yay360.api.dto.GrossesseDto;
-import sn.yay360.api.dto.TerminerGrossesseRequest;
+import sn.yay360.api.dto.*;
 import sn.yay360.api.helper.GrossesseHelper;
 import sn.yay360.api.service.GrossesseService;
 import lombok.RequiredArgsConstructor;
@@ -33,32 +30,47 @@ public class GrossesseServiceImpl implements GrossesseService {
     }
 
     @Override
-    public GrossesseDto obtenirParId(Long id) {
-        return grossesseHelper.obtenirParId(id);
+    public GrossesseDto choisirEtablissement(String emailFemme, ChoisirEtablissementRequest request) {
+        return grossesseHelper.choisirEtablissement(emailFemme, request);
     }
 
     @Override
-    public List<GrossesseDto> listerActives() {
-        return grossesseHelper.listerActives();
+    public GrossesseDto obtenirParId(String email, Long id) {
+        return grossesseHelper.obtenirParId(email, id);
     }
 
     @Override
-    public List<GrossesseDto> listerARisque() {
-        return grossesseHelper.listerARisque();
+    public List<GrossesseDto> listerActives(String email) {
+        return grossesseHelper.listerActives(email);
     }
 
     @Override
-    public GrossesseDto declarerARisque(Long id, DeclarerRisqueRequest request) {
-        return grossesseHelper.declarerARisque(id, request);
+    public List<GrossesseDto> listerARisque(String email) {
+        return grossesseHelper.listerARisque(email);
     }
 
     @Override
-    public GrossesseDto retirerRisque(Long id) {
-        return grossesseHelper.retirerRisque(id);
+    public List<PatienteRechercheDto> rechercherPatiente(String emailProfessionnel, String telephone, String email) {
+        return grossesseHelper.rechercherPatiente(emailProfessionnel, telephone, email);
     }
 
     @Override
-    public GrossesseDto terminer(Long id, TerminerGrossesseRequest request) {
-        return grossesseHelper.terminer(id, request);
+    public GrossesseDto rattacher(String emailProfessionnel, Long id, RattacherGrossesseRequest request) {
+        return grossesseHelper.rattacher(emailProfessionnel, id, request);
+    }
+
+    @Override
+    public GrossesseDto declarerARisque(String emailMedecin, Long id, DeclarerRisqueRequest request) {
+        return grossesseHelper.declarerARisque(emailMedecin, id, request);
+    }
+
+    @Override
+    public GrossesseDto retirerRisque(String emailMedecin, Long id) {
+        return grossesseHelper.retirerRisque(emailMedecin, id);
+    }
+
+    @Override
+    public GrossesseDto terminer(String emailMedecin, Long id, TerminerGrossesseRequest request) {
+        return grossesseHelper.terminer(emailMedecin, id, request);
     }
 }

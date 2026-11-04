@@ -31,5 +31,8 @@ public class GrossesseDto {
     private String motifRisque;
     private Integer nombreGrossessesPrecedentes;
     private String antecedents;
+    private Long etablissementSuiviId;
+    private String etablissementSuiviNom;
+    private LocalDate dateFin;
     private LocalDateTime dateCreation;
 }

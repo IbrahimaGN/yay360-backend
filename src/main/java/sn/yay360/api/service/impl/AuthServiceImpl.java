@@ -38,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void changerMotDePasse(String email, ChangePasswordRequest request) {
-        authHelper.changerMotDePasse(email, request);
+    public LoginResponse changerMotDePasse(String email, ChangePasswordRequest request) {
+        return authHelper.changerMotDePasse(email, request);
     }
 }

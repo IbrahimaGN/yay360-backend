@@ -28,10 +28,11 @@ public class RegisterRequest {
 
     @NotBlank(message = "L'email est obligatoire")
     @Email(message = "L'email doit être une adresse valide contenant un @")
+    @Size(max = 150, message = "L'email ne doit pas dépasser 150 caractères")
     private String email;
 
     @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 6, message = "Le mot de passe doit contenir au moins 6 caractères")
+    @Size(min = 8, max = 100, message = "Le mot de passe doit contenir entre 8 et 100 caractères")
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
             message = "Le mot de passe doit contenir au moins une lettre et un chiffre")
     private String password;
@@ -44,8 +45,11 @@ public class RegisterRequest {
     @Past(message = "La date de naissance doit être dans le passé")
     private LocalDate dateNaissance;
 
-    @NotBlank(message = "Le rôle est obligatoire")
-    @Pattern(regexp = "ADMIN|FEMME_ENCEINTE|SAGE_FEMME|MEDECIN",
-            message = "Rôle invalide")
+    /**
+     * Facultatif : l'inscription publique crée toujours un compte FEMME_ENCEINTE.
+     * Les comptes professionnels sont créés par un administrateur (POST /utilisateurs/professionnels).
+     */
+    @Pattern(regexp = "FEMME_ENCEINTE",
+            message = "L'inscription en ligne est réservée aux femmes enceintes")
     private String role;
 }

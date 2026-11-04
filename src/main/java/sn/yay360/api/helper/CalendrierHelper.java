@@ -19,9 +19,11 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class CalendrierHelper {
 
     private final GrossesseHelper grossesseHelper;
+    private final AccesDossierHelper acces;
     private final EtapeGrossesseRepository etapeGrossesseRepository;
     private final CalculObstetricalHelper calcul;
 
@@ -32,8 +34,9 @@ public class CalendrierHelper {
     }
 
     @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
-    public CalendrierGrossesseDto obtenirCalendrierParId(Long grossesseId) {
+    public CalendrierGrossesseDto obtenirCalendrierParId(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);
+        acces.verifierLecture(acces.utilisateur(email), grossesse);
         return genererCalendrier(grossesse);
     }
 

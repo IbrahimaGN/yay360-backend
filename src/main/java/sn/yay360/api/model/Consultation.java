@@ -75,6 +75,10 @@ public class Consultation {
     @Column(columnDefinition = "TEXT")
     private String prescriptions;
 
+    /** Signaux détectés automatiquement sur les constantes (un par ligne, « CODE|NIVEAU|message »). */
+    @Column(name = "signaux_cliniques", columnDefinition = "TEXT")
+    private String signauxCliniques;
+
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 

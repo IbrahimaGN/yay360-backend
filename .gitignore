@@ -28,3 +28,6 @@ target/
 
 ### Env ###
 .env
+
+### Documentation interne (audit) ###
+docs/

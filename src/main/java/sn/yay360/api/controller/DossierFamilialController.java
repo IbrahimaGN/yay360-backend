@@ -1,7 +1,7 @@
 package sn.yay360.api.controller;
 
 import sn.yay360.api.dto.InvitationConjointRequest;
-import sn.yay360.api.dto.MessageResponse;
+import sn.yay360.api.dto.InvitationConjointResponse;
 import sn.yay360.api.service.DossierFamilialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,9 +23,8 @@ public class DossierFamilialController {
 
     @PostMapping("/inviter-conjoint")
     @Operation(summary = "Inviter son conjoint à accéder au dossier maternel")
-    public MessageResponse inviterConjoint(Authentication authentication,
-                                           @Valid @RequestBody InvitationConjointRequest request) {
-        dossierFamilialService.inviterConjoint(authentication.getName(), request);
-        return new MessageResponse("Invitation créée. Le conjoint recevra son lien par email lorsque l'envoi sera configuré.");
+    public InvitationConjointResponse inviterConjoint(Authentication authentication,
+                                                      @Valid @RequestBody InvitationConjointRequest request) {
+        return dossierFamilialService.inviterConjoint(authentication.getName(), request);
     }
 }

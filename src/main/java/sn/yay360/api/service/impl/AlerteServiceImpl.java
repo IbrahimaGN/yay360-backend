@@ -1,8 +1,6 @@
 package sn.yay360.api.service.impl;
 
-import sn.yay360.api.dto.AlerteDto;
-import sn.yay360.api.dto.DeclarerSymptomeRequest;
-import sn.yay360.api.dto.PriseEnChargeRequest;
+import sn.yay360.api.dto.*;
 import sn.yay360.api.helper.AlerteHelper;
 import sn.yay360.api.service.AlerteService;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +25,13 @@ public class AlerteServiceImpl implements AlerteService {
     }
 
     @Override
-    public List<AlerteDto> listerParStatut(String statut) {
-        return alerteHelper.listerParStatut(statut);
+    public List<AlerteDto> listerParStatut(String email, String statut) {
+        return alerteHelper.listerParStatut(email, statut);
     }
 
     @Override
-    public List<AlerteDto> listerUrgentes() {
-        return alerteHelper.listerUrgentes();
+    public List<AlerteDto> listerUrgentes(String email) {
+        return alerteHelper.listerUrgentes(email);
     }
 
     @Override
@@ -42,8 +40,8 @@ public class AlerteServiceImpl implements AlerteService {
     }
 
     @Override
-    public AlerteDto resoudre(Long id, PriseEnChargeRequest request) {
-        return alerteHelper.resoudre(id, request);
+    public AlerteDto resoudre(String emailProfessionnel, Long id, PriseEnChargeRequest request) {
+        return alerteHelper.resoudre(emailProfessionnel, id, request);
     }
 
     @Override

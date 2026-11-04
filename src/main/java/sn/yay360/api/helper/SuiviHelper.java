@@ -19,10 +19,13 @@ import java.util.Optional;
  */
 @Component
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class SuiviHelper {
 
     private final GrossesseHelper grossesseHelper;
+    private final AccesDossierHelper acces;
     private final EtapeGrossesseHelper etapeGrossesseHelper;
+    private final sn.yay360.api.repo.EtapeGrossesseRepository etapeGrossesseRepository;
     private final ConseilGrossesseRepository conseilRepository;
     private final ConseilMapper conseilMapper;
     private final CalculObstetricalHelper calcul;
@@ -34,8 +37,9 @@ public class SuiviHelper {
     }
 
     @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
-    public SuiviHebdomadaireDto obtenirSuiviParId(Long grossesseId) {
+    public SuiviHebdomadaireDto obtenirSuiviParId(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);
+        acces.verifierLecture(acces.utilisateur(email), grossesse);
         return genererSuivi(grossesse);
     }
 
@@ -45,12 +49,8 @@ public class SuiviHelper {
         String trimestre = calcul.calculerTrimestre(semaine);
         int joursRestants = calcul.calculerJoursRestants(grossesse.getDatePrevueAccouchement());
 
-        Optional<EtapeGrossesse> etapeOpt;
-        try {
-            etapeOpt = Optional.of(etapeGrossesseHelper.trouverParSemaine(semaine));
-        } catch (Exception ex) {
-            etapeOpt = Optional.empty();
-        }
+        // Lecture directe (Optional) : une étape absente ne doit pas annuler la transaction
+        Optional<EtapeGrossesse> etapeOpt = etapeGrossesseRepository.findBySemaine(semaine);
 
         List<ConseilDto> conseils = conseilRepository
                 .findByActifTrueAndSemaineDebutLessThanEqualAndSemaineFinGreaterThanEqual(semaine, semaine).stream()

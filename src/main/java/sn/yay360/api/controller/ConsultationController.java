@@ -17,39 +17,39 @@ import java.util.List;
 @RestController
 @RequestMapping("/consultations")
 @RequiredArgsConstructor
-@Tag(name = "Consultations", description = "Enregistrement des consultations médicales (§5.6)")
+@Tag(name = "Consultations", description = "Consultations prénatales (CPN) : constantes, diagnostic, prescriptions (§4.5)")
 public class ConsultationController {
 
     private final ConsultationService consultationService;
 
     @PostMapping
-    @Operation(summary = "Enregistrer une consultation (Médecin/Sage-femme)")
+    @Operation(summary = "Enregistrer une consultation (soignant qui suit la patiente)")
     public ResponseEntity<ConsultationDto> enregistrer(Authentication authentication,
-                                                        @Valid @RequestBody EnregistrerConsultationRequest request) {
-        ConsultationDto dto = consultationService.enregistrer(authentication.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+                                                       @Valid @RequestBody EnregistrerConsultationRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(consultationService.enregistrer(authentication.getName(), request));
     }
 
     @GetMapping("/mes-consultations")
-    @Operation(summary = "Lister les consultations du dossier familial")
+    @Operation(summary = "Mes consultations (femme enceinte ou conjoint)")
     public List<ConsultationDto> mesConsultations(Authentication authentication) {
         return consultationService.mesConsultations(authentication.getName());
     }
 
     @GetMapping("/mon-activite")
-    @Operation(summary = "Lister les consultations que j'ai réalisées (Médecin/Sage-femme)")
+    @Operation(summary = "Consultations réalisées par le soignant connecté")
     public List<ConsultationDto> monActivite(Authentication authentication) {
         return consultationService.mesConsultationsProfessionnel(authentication.getName());
     }
 
     @GetMapping("/grossesse/{grossesseId}")
-    @Operation(summary = "Lister les consultations d'une grossesse (Médecin/Sage-femme/Admin)")
-    public List<ConsultationDto> parGrossesse(@PathVariable Long grossesseId) {
-        return consultationService.parGrossesse(grossesseId);
+    @Operation(summary = "Consultations d'une grossesse (soignant qui la suit)")
+    public List<ConsultationDto> parGrossesse(Authentication authentication, @PathVariable Long grossesseId) {
+        return consultationService.parGrossesse(authentication.getName(), grossesseId);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Consulter une consultation par id")
+    @Operation(summary = "Détail d'une consultation")
     public ConsultationDto obtenirParId(Authentication authentication, @PathVariable Long id) {
         return consultationService.obtenirParId(authentication.getName(), id);
     }

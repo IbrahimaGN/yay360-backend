@@ -16,79 +16,79 @@ import java.util.List;
 @RestController
 @RequestMapping("/rendez-vous")
 @RequiredArgsConstructor
-@Tag(name = "Rendez-vous", description = "Prise, modification, annulation et suivi des rendez-vous (§5.7)")
+@Tag(name = "Rendez-vous", description = "Prise, planification, report, annulation et suivi des rendez-vous (§4.6)")
 public class RendezVousController {
 
     private final RendezVousService rendezVousService;
 
-    // --- Dossier familial ---
-
     @PostMapping
-    @Operation(summary = "Prendre un rendez-vous pour le dossier familial")
+    @Operation(summary = "Demander un rendez-vous (femme enceinte ou conjoint)")
     public ResponseEntity<RendezVousDto> prendre(Authentication authentication,
-                                                  @Valid @RequestBody PrendreRendezVousRequest request) {
-        RendezVousDto dto = rendezVousService.prendre(authentication.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+                                                 @Valid @RequestBody PrendreRendezVousRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(rendezVousService.prendre(authentication.getName(), request));
+    }
+
+    @PostMapping("/planifier")
+    @Operation(summary = "Planifier un rendez-vous pour une patiente suivie (soignant)")
+    public ResponseEntity<RendezVousDto> planifier(Authentication authentication,
+                                                   @Valid @RequestBody PlanifierRendezVousRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(rendezVousService.planifier(authentication.getName(), request));
     }
 
     @GetMapping("/mes-rendez-vous")
-    @Operation(summary = "Lister les rendez-vous du dossier familial")
+    @Operation(summary = "Mes rendez-vous")
     public List<RendezVousDto> mesRendezVous(Authentication authentication) {
         return rendezVousService.mesRendezVous(authentication.getName());
     }
 
     @GetMapping("/mes-rendez-vous/a-venir")
-    @Operation(summary = "Lister les rendez-vous à venir du dossier familial")
+    @Operation(summary = "Mes rendez-vous à venir")
     public List<RendezVousDto> mesRendezVousAVenir(Authentication authentication) {
         return rendezVousService.mesRendezVousAVenir(authentication.getName());
     }
 
-    // --- Professionnels de santé / Admin ---
-
     @GetMapping("/mon-planning")
-    @Operation(summary = "Lister mes rendez-vous en tant que professionnel (Médecin/Sage-femme)")
+    @Operation(summary = "Planning du soignant connecté")
     public List<RendezVousDto> monPlanning(Authentication authentication) {
         return rendezVousService.rendezVousDuProfessionnel(authentication.getName());
     }
 
     @GetMapping
-    @Operation(summary = "Lister les rendez-vous par statut (Médecin/Sage-femme/Admin)")
-    public List<RendezVousDto> listerParStatut(@RequestParam String statut) {
-        return rendezVousService.listerParStatut(statut);
+    @Operation(summary = "Rendez-vous par statut : patientes suivies (soignant) ou tous (admin)")
+    public List<RendezVousDto> listerParStatut(Authentication authentication, @RequestParam String statut) {
+        return rendezVousService.listerParStatut(authentication.getName(), statut);
     }
 
     @GetMapping("/grossesse/{grossesseId}")
-    @Operation(summary = "Lister les rendez-vous d'une grossesse (Médecin/Sage-femme/Admin)")
-    public List<RendezVousDto> listerParGrossesse(@PathVariable Long grossesseId) {
-        return rendezVousService.listerParGrossesse(grossesseId);
+    @Operation(summary = "Rendez-vous d'une grossesse")
+    public List<RendezVousDto> listerParGrossesse(Authentication authentication, @PathVariable Long grossesseId) {
+        return rendezVousService.listerParGrossesse(authentication.getName(), grossesseId);
     }
-
-    @PutMapping("/{id}/statut")
-    @Operation(summary = "Changer le statut d'un rendez-vous : confirmer/terminer/absent (Médecin/Sage-femme/Admin)")
-    public RendezVousDto changerStatut(@PathVariable Long id, @Valid @RequestBody ChangerStatutRendezVousRequest request) {
-        return rendezVousService.changerStatut(id, request);
-    }
-
-    // --- Communs (avec vérification d'accès interne) ---
 
     @GetMapping("/{id}")
-    @Operation(summary = "Consulter un rendez-vous par id")
+    @Operation(summary = "Détail d'un rendez-vous")
     public RendezVousDto obtenirParId(Authentication authentication, @PathVariable Long id) {
         return rendezVousService.obtenirParId(authentication.getName(), id);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Modifier un rendez-vous (déplacer la date)")
+    @Operation(summary = "Reporter un rendez-vous")
     public RendezVousDto modifier(Authentication authentication, @PathVariable Long id,
-                                   @Valid @RequestBody ModifierRendezVousRequest request) {
+                                  @Valid @RequestBody ModifierRendezVousRequest request) {
         return rendezVousService.modifier(authentication.getName(), id, request);
     }
 
     @PutMapping("/{id}/annuler")
     @Operation(summary = "Annuler un rendez-vous")
     public RendezVousDto annuler(Authentication authentication, @PathVariable Long id,
-                                  @RequestBody(required = false) AnnulerRendezVousRequest request) {
-        AnnulerRendezVousRequest req = request != null ? request : new AnnulerRendezVousRequest();
-        return rendezVousService.annuler(authentication.getName(), id, req);
+                                 @RequestBody(required = false) AnnulerRendezVousRequest request) {
+        return rendezVousService.annuler(authentication.getName(), id, request);
+    }
+
+    @PutMapping("/{id}/statut")
+    @Operation(summary = "Changer le statut (CONFIRME, ANNULE, TERMINE, ABSENT) selon les transitions autorisées (soignant)")
+    public RendezVousDto changerStatut(Authentication authentication, @PathVariable Long id,
+                                       @Valid @RequestBody ChangerStatutRendezVousRequest request) {
+        return rendezVousService.changerStatut(authentication.getName(), id, request);
     }
 }

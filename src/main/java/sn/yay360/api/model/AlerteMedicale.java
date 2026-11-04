@@ -20,6 +20,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class AlerteMedicale {
 
+    /** Verrouillage optimiste : deux soignants ne peuvent pas modifier la même ligne en même temps. */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,6 +49,14 @@ public class AlerteMedicale {
     @Column(nullable = false, length = 20)
     private String statut = StatutAlerte.NOUVELLE;
 
+    /** PATIENTE (symptôme déclaré) ou ANALYSE_AUTOMATIQUE (constantes anormales en consultation). */
+    @Column(length = 30)
+    private String origine;
+
+    /** Raisonnement du moteur de triage (règles appliquées), pour la traçabilité. */
+    @Column(name = "justification_triage", columnDefinition = "TEXT")
+    private String justificationTriage;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professionnel_id")
     private Utilisateur professionnelPriseEnCharge;
@@ -53,6 +66,9 @@ public class AlerteMedicale {
 
     @Column(name = "date_declaration", nullable = false, updatable = false)
     private LocalDateTime dateDeclaration;
+
+    @Column(name = "date_prise_en_charge")
+    private LocalDateTime datePriseEnCharge;
 
     @Column(name = "date_resolution")
     private LocalDateTime dateResolution;

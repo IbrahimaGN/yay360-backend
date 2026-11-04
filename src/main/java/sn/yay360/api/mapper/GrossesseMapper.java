@@ -24,6 +24,11 @@ public class GrossesseMapper {
         dto.setMotifRisque(grossesse.getMotifRisque());
         dto.setNombreGrossessesPrecedentes(grossesse.getNombreGrossessesPrecedentes());
         dto.setAntecedents(grossesse.getAntecedents());
+        if (grossesse.getEtablissementSuivi() != null) {
+            dto.setEtablissementSuiviId(grossesse.getEtablissementSuivi().getId());
+            dto.setEtablissementSuiviNom(grossesse.getEtablissementSuivi().getNom());
+        }
+        dto.setDateFin(grossesse.getDateFin());
         dto.setDateCreation(grossesse.getDateCreation());
         return dto;
     }

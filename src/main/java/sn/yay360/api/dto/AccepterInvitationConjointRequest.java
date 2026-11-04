@@ -34,7 +34,7 @@ public class AccepterInvitationConjointRequest {
     private String prenom;
 
     @NotBlank
-    @Size(min = 6, message = "Le mot de passe doit contenir au moins 6 caractères")
+    @Size(min = 8, max = 100, message = "Le mot de passe doit contenir entre 8 et 100 caractères")
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
             message = "Le mot de passe doit contenir au moins une lettre et un chiffre")
     private String password;

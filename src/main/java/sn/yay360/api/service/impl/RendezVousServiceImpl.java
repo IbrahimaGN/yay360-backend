@@ -20,6 +20,11 @@ public class RendezVousServiceImpl implements RendezVousService {
     }
 
     @Override
+    public RendezVousDto planifier(String emailProfessionnel, PlanifierRendezVousRequest request) {
+        return rendezVousHelper.planifier(emailProfessionnel, request);
+    }
+
+    @Override
     public List<RendezVousDto> mesRendezVous(String emailFemme) {
         return rendezVousHelper.mesRendezVous(emailFemme);
     }
@@ -35,13 +40,13 @@ public class RendezVousServiceImpl implements RendezVousService {
     }
 
     @Override
-    public List<RendezVousDto> listerParStatut(String statut) {
-        return rendezVousHelper.listerParStatut(statut);
+    public List<RendezVousDto> listerParStatut(String email, String statut) {
+        return rendezVousHelper.listerParStatut(email, statut);
     }
 
     @Override
-    public List<RendezVousDto> listerParGrossesse(Long grossesseId) {
-        return rendezVousHelper.listerParGrossesse(grossesseId);
+    public List<RendezVousDto> listerParGrossesse(String email, Long grossesseId) {
+        return rendezVousHelper.listerParGrossesse(email, grossesseId);
     }
 
     @Override
@@ -60,7 +65,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     }
 
     @Override
-    public RendezVousDto changerStatut(Long id, ChangerStatutRendezVousRequest request) {
-        return rendezVousHelper.changerStatut(id, request);
+    public RendezVousDto changerStatut(String emailProfessionnel, Long id, ChangerStatutRendezVousRequest request) {
+        return rendezVousHelper.changerStatut(emailProfessionnel, id, request);
     }
 }

@@ -28,6 +28,9 @@ public class AlerteMapper {
         dto.setDateDeclaration(alerte.getDateDeclaration());
         dto.setDateResolution(alerte.getDateResolution());
         dto.setRecommandation(recommandation);
+        dto.setOrigine(alerte.getOrigine());
+        dto.setJustificationTriage(alerte.getJustificationTriage() == null ? java.util.List.of()
+                : java.util.List.of(alerte.getJustificationTriage().split("\n")));
         return dto;
     }
 }

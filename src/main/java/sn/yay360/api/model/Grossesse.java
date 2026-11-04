@@ -52,6 +52,15 @@ public class Grossesse {
     @Column(columnDefinition = "TEXT")
     private String antecedents;
 
+    /** Établissement qui assure le suivi : ses professionnels ont accès au dossier. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "etablissement_suivi_id")
+    private EtablissementSante etablissementSuivi;
+
+    /** Date de fin de la grossesse (accouchement ou interruption). */
+    @Column(name = "date_fin")
+    private LocalDate dateFin;
+
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 

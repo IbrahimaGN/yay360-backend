@@ -27,5 +27,8 @@ public class AlerteDto {
     private LocalDateTime dateDeclaration;
     private LocalDateTime dateResolution;
     private String recommandation;
+    private String origine;
+    /** Règles de triage appliquées (intelligence explicable). */
+    private java.util.List<String> justificationTriage;
     private String avertissement = "Ces recommandations ne remplacent jamais l'avis d'un professionnel de santé.";
 }

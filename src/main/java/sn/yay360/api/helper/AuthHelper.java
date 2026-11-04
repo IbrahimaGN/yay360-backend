@@ -9,23 +9,20 @@ import sn.yay360.api.model.InvitationConjoint;
 import sn.yay360.api.model.Utilisateur;
 import sn.yay360.api.repo.InvitationConjointRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
+import sn.yay360.api.security.JetonSecurise;
 import sn.yay360.api.security.JwtUtil;
+import sn.yay360.api.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.Period;
-import java.util.Base64;
-import java.util.List;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Contient toute la logique métier liée à l'authentification :
@@ -35,64 +32,84 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthHelper {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthHelper.class);
+
+    /**
+     * Message unique pour tout échec de connexion (email inconnu, mot de passe faux, compte verrouillé) :
+     * il ne révèle ni l'existence d'un compte ni son verrouillage.
+     */
+    static final String IDENTIFIANTS_INCORRECTS =
+            "Email ou mot de passe incorrect. Après plusieurs échecs, réessayez dans quelques minutes.";
+
     private final UtilisateurRepository utilisateurRepository;
     private final InvitationConjointRepository invitationConjointRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UtilisateurMapper utilisateurMapper;
+    private final EmailService emailService;
 
-    @Value("${jwt.reset-token-expiration}")
-    private long resetTokenExpirationMs;
+    @Value("${jwt.reset-token-expiration:3600000}")
+    private long resetTokenExpirationMs = 3_600_000L;
 
-    private static final List<String> ROLES_VALIDES = List.of(
-            RoleUtilisateur.ADMIN, RoleUtilisateur.FEMME_ENCEINTE,
-            RoleUtilisateur.SAGE_FEMME, RoleUtilisateur.MEDECIN
-    );
+    @Value("${yay360.securite.tentatives-max:5}")
+    private int tentativesMax = 5;
 
-    // Âge minimum plausible par rôle ; le compte conjoint est créé uniquement sur invitation.
-    private static final Map<String, Integer> AGE_MINIMUM_PAR_ROLE = Map.of(
-            RoleUtilisateur.FEMME_ENCEINTE, 13,
-            RoleUtilisateur.CONJOINT, 18,
-            RoleUtilisateur.MEDECIN, 21,
-            RoleUtilisateur.SAGE_FEMME, 21,
-            RoleUtilisateur.ADMIN, 18
-    );
+    @Value("${yay360.securite.duree-verrouillage-minutes:15}")
+    private long dureeVerrouillageMinutes = 15;
 
-    private static final int AGE_MAXIMUM_PLAUSIBLE = 120;
+    @Value("${yay360.frontend-url:http://localhost:4200}")
+    private String frontendUrl = "http://localhost:4200";
 
+    private volatile String empreinteFactice;
+
+    private String empreinteFactice() {
+        if (empreinteFactice == null) {
+            empreinteFactice = passwordEncoder.encode(JetonSecurise.generer());
+        }
+        return empreinteFactice;
+    }
+
+    public static String normaliserEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Inscription publique : réservée aux femmes enceintes. Les comptes professionnels
+     * (médecin, sage-femme) et administrateurs sont créés par un administrateur.
+     */
+    @Transactional
     public LoginResponse inscrire(RegisterRequest request) {
-        if (utilisateurRepository.existsByEmail(request.getEmail())) {
-            throw new EmailDejaUtiliseException("Un compte existe déjà avec cet email : " + request.getEmail());
+        if (request.getRole() != null && !RoleUtilisateur.FEMME_ENCEINTE.equals(request.getRole())) {
+            throw new IllegalArgumentException(
+                    "L'inscription en ligne est réservée aux femmes enceintes. "
+                            + "Les comptes professionnels sont créés par un administrateur.");
+        }
+        String email = normaliserEmail(request.getEmail());
+        if (utilisateurRepository.existsByEmailIgnoreCase(email)) {
+            throw new EmailDejaUtiliseException("Un compte existe déjà avec cet email");
         }
 
-        if (!ROLES_VALIDES.contains(request.getRole())) {
-            throw new IllegalArgumentException("Rôle invalide : " + request.getRole());
-        }
-
-        validerAge(request.getRole(), request.getDateNaissance());
+        RegleAgeHelper.valider(RoleUtilisateur.FEMME_ENCEINTE, request.getDateNaissance());
 
         Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
+        utilisateur.setNom(request.getNom().trim());
+        utilisateur.setPrenom(request.getPrenom().trim());
+        utilisateur.setEmail(email);
         utilisateur.setMotDePasse(passwordEncoder.encode(request.getPassword()));
         utilisateur.setTelephone(request.getTelephone());
         utilisateur.setDateNaissance(request.getDateNaissance());
-        utilisateur.setRole(request.getRole());
+        utilisateur.setRole(RoleUtilisateur.FEMME_ENCEINTE);
         utilisateur.setActif(true);
 
         Utilisateur enregistre = utilisateurRepository.save(utilisateur);
-
-        String token = jwtUtil.genererToken(enregistre.getId(), enregistre.getEmail(), enregistre.getRole());
-        return utilisateurMapper.versLoginResponse(enregistre, token);
+        return reponseConnexion(enregistre);
     }
 
     @Transactional
     public LoginResponse accepterInvitationConjoint(AccepterInvitationConjointRequest request) {
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String email = normaliserEmail(request.getEmail());
         InvitationConjoint invitation = invitationConjointRepository
-                .findByTokenAndAccepteeFalse(request.getToken())
+                .findByTokenAndAccepteeFalse(JetonSecurise.hacher(request.getToken().trim()))
                 .orElseThrow(() -> new AuthentificationException("Invitation invalide ou déjà utilisée"));
         if (invitation.getDateExpiration().isBefore(LocalDateTime.now())
                 || !invitation.getEmail().equalsIgnoreCase(email)) {
@@ -102,11 +119,11 @@ public class AuthHelper {
                 || utilisateurRepository.findByFemmeAssocieeId(invitation.getFemme().getId()).isPresent()) {
             throw new EmailDejaUtiliseException("Un compte ou un conjoint est déjà associé à cette invitation");
         }
-        validerAge(RoleUtilisateur.CONJOINT, request.getDateNaissance());
+        RegleAgeHelper.valider(RoleUtilisateur.CONJOINT, request.getDateNaissance());
 
         Utilisateur conjoint = new Utilisateur();
-        conjoint.setNom(request.getNom());
-        conjoint.setPrenom(request.getPrenom());
+        conjoint.setNom(request.getNom().trim());
+        conjoint.setPrenom(request.getPrenom().trim());
         conjoint.setEmail(email);
         conjoint.setMotDePasse(passwordEncoder.encode(request.getPassword()));
         conjoint.setTelephone(request.getTelephone());
@@ -118,93 +135,146 @@ public class AuthHelper {
 
         invitation.setAcceptee(true);
         invitationConjointRepository.save(invitation);
-        String token = jwtUtil.genererToken(enregistre.getId(), enregistre.getEmail(), enregistre.getRole());
-        return utilisateurMapper.versLoginResponse(enregistre, token);
+        return reponseConnexion(enregistre);
     }
 
+    /**
+     * Connexion. Le mot de passe est vérifié AVANT l'état du compte pour ne pas révéler
+     * l'existence d'un compte. Après {@code tentativesMax} échecs, le compte est verrouillé
+     * temporairement (protection contre la force brute).
+     */
+    @Transactional(noRollbackFor = AuthentificationException.class)
     public LoginResponse connecter(LoginRequest request) {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AuthentificationException("Email ou mot de passe incorrect"));
+        Utilisateur utilisateur = utilisateurRepository.findPourConnexion(normaliserEmail(request.getEmail()))
+                .orElse(null);
+
+        if (utilisateur == null) {
+            // Vérification factice : temps de réponse comparable à celui d'un compte existant
+            passwordEncoder.matches(request.getPassword(), empreinteFactice());
+            throw new AuthentificationException(IDENTIFIANTS_INCORRECTS);
+        }
+
+        LocalDateTime maintenant = LocalDateTime.now();
+        if (utilisateur.getVerrouilleJusqua() != null && utilisateur.getVerrouilleJusqua().isAfter(maintenant)) {
+            passwordEncoder.matches(request.getPassword(), empreinteFactice()); // temps de réponse constant
+            throw new AuthentificationException(IDENTIFIANTS_INCORRECTS);
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), utilisateur.getMotDePasse())) {
+            enregistrerEchec(utilisateur, maintenant);
+            throw new AuthentificationException(IDENTIFIANTS_INCORRECTS);
+        }
 
         if (!Boolean.TRUE.equals(utilisateur.getActif())) {
             throw new AuthentificationException("Ce compte a été désactivé. Contactez un administrateur.");
         }
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-
-        String token = jwtUtil.genererToken(utilisateur.getId(), utilisateur.getEmail(), utilisateur.getRole());
-        return utilisateurMapper.versLoginResponse(utilisateur, token);
+        if (valeur(utilisateur.getTentativesConnexionEchouees()) > 0 || utilisateur.getVerrouilleJusqua() != null) {
+            utilisateur.setTentativesConnexionEchouees(0);
+            utilisateur.setVerrouilleJusqua(null);
+            utilisateurRepository.save(utilisateur);
+        }
+        return reponseConnexion(utilisateur);
     }
 
+    /**
+     * Mot de passe oublié : la réponse est identique que l'email existe ou non
+     * (pas d'énumération des comptes). Le lien est envoyé par email.
+     */
+    @Transactional
     public void motDePasseOublie(ForgotPasswordRequest request) {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AuthentificationException("Aucun compte associé à cet email"));
+        utilisateurRepository.findByEmailIgnoreCase(normaliserEmail(request.getEmail()))
+                .filter(u -> Boolean.TRUE.equals(u.getActif()))
+                .ifPresent(utilisateur -> {
+                    String jeton = JetonSecurise.generer();
+                    utilisateur.setResetToken(JetonSecurise.hacher(jeton));
+                    utilisateur.setResetTokenExpiration(
+                            LocalDateTime.now().plus(resetTokenExpirationMs, ChronoUnit.MILLIS));
+                    utilisateurRepository.save(utilisateur);
 
-        String token = genererTokenAleatoire();
-        utilisateur.setResetToken(token);
-        utilisateur.setResetTokenExpiration(LocalDateTime.now().plusNanos(resetTokenExpirationMs * 1_000_000));
-        utilisateurRepository.save(utilisateur);
-
-        // Simulation d'envoi d'email (comme l'OTP simulé en console dans wallet-service)
-        System.out.println("=== [YAY360] Email de réinitialisation ===");
-        System.out.println("Destinataire : " + utilisateur.getEmail());
-        System.out.println("Token de réinitialisation : " + token);
-        System.out.println("Valide " + (resetTokenExpirationMs / 60000) + " minutes");
-        System.out.println("===========================================");
+                    String lien = frontendUrl + "/reinitialiser-mot-de-passe?token=" + jeton;
+                    long minutes = resetTokenExpirationMs / 60_000;
+                    emailService.envoyer(utilisateur.getEmail(), "YAY360 — Réinitialisation de votre mot de passe",
+                            "Bonjour " + utilisateur.getPrenom() + ",\n\n"
+                                    + "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable " + minutes
+                                    + " minutes, utilisable une seule fois) :\n" + lien + "\n\n"
+                                    + "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
+                            lien);
+                    log.info("[YAY360] Demande de réinitialisation de mot de passe (utilisateur id={})",
+                            utilisateur.getId());
+                });
     }
 
+    @Transactional
     public void reinitialiserMotDePasse(ResetPasswordRequest request) {
-        Utilisateur utilisateur = utilisateurRepository.findByResetToken(request.getToken())
-                .orElseThrow(() -> new AuthentificationException("Token de réinitialisation invalide"));
+        Utilisateur utilisateur = utilisateurRepository.findByResetToken(JetonSecurise.hacher(request.getToken().trim()))
+                .orElseThrow(() -> new AuthentificationException("Lien de réinitialisation invalide ou déjà utilisé"));
 
         if (utilisateur.getResetTokenExpiration() == null
                 || utilisateur.getResetTokenExpiration().isBefore(LocalDateTime.now())) {
-            throw new AuthentificationException("Le token de réinitialisation a expiré");
+            utilisateur.setResetToken(null);
+            utilisateur.setResetTokenExpiration(null);
+            utilisateurRepository.save(utilisateur);
+            throw new AuthentificationException("Le lien de réinitialisation a expiré");
         }
 
-        utilisateur.setMotDePasse(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        definirNouveauMotDePasse(utilisateur, request.getNouveauMotDePasse());
         utilisateur.setResetToken(null);
         utilisateur.setResetTokenExpiration(null);
+        utilisateur.setTentativesConnexionEchouees(0);
+        utilisateur.setVerrouilleJusqua(null);
         utilisateurRepository.save(utilisateur);
     }
 
-    public void changerMotDePasse(String email, ChangePasswordRequest request) {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+    /**
+     * Changement du mot de passe. Renvoie un nouveau jeton : les jetons émis avant
+     * le changement sont invalidés (déconnexion des autres appareils).
+     */
+    @Transactional
+    public LoginResponse changerMotDePasse(String email, ChangePasswordRequest request) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AuthentificationException("Utilisateur introuvable"));
 
         if (!passwordEncoder.matches(request.getAncienMotDePasse(), utilisateur.getMotDePasse())) {
             throw new AuthentificationException("L'ancien mot de passe est incorrect");
         }
+        if (request.getAncienMotDePasse().equals(request.getNouveauMotDePasse())) {
+            throw new IllegalArgumentException("Le nouveau mot de passe doit être différent de l'ancien");
+        }
 
-        utilisateur.setMotDePasse(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        definirNouveauMotDePasse(utilisateur, request.getNouveauMotDePasse());
+        Utilisateur enregistre = utilisateurRepository.save(utilisateur);
+        return reponseConnexion(enregistre);
+    }
+
+    private void definirNouveauMotDePasse(Utilisateur utilisateur, String motDePasse) {
+        utilisateur.setMotDePasse(passwordEncoder.encode(motDePasse));
+        utilisateur.setMotDePasseTemporaire(false);
+        utilisateur.setDateChangementMotDePasse(LocalDateTime.now());
+        // Révoque immédiatement tous les jetons émis avant ce changement
+        utilisateur.setVersionJeton((utilisateur.getVersionJeton() == null ? 0 : utilisateur.getVersionJeton()) + 1);
+    }
+
+    private void enregistrerEchec(Utilisateur utilisateur, LocalDateTime maintenant) {
+        int echecs = valeur(utilisateur.getTentativesConnexionEchouees()) + 1;
+        if (echecs >= tentativesMax) {
+            utilisateur.setVerrouilleJusqua(maintenant.plusMinutes(dureeVerrouillageMinutes));
+            utilisateur.setTentativesConnexionEchouees(0);
+            log.warn("[YAY360] Compte id={} verrouillé {} min après {} échecs de connexion",
+                    utilisateur.getId(), dureeVerrouillageMinutes, echecs);
+        } else {
+            utilisateur.setTentativesConnexionEchouees(echecs);
+        }
         utilisateurRepository.save(utilisateur);
     }
 
-    private String genererTokenAleatoire() {
-        SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[32];
-        random.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    private LoginResponse reponseConnexion(Utilisateur utilisateur) {
+        String token = jwtUtil.genererToken(utilisateur.getId(), utilisateur.getEmail(), utilisateur.getRole(),
+                utilisateur.getVersionJeton());
+        return utilisateurMapper.versLoginResponse(utilisateur, token);
     }
 
-    /**
-     * Valide l'âge selon le rôle : une femme enceinte doit avoir au moins 13 ans,
-     * un professionnel de santé (médecin/sage-femme) au moins 21 ans (âge minimum
-     * plausible après des études supérieures), un administrateur au moins 18 ans.
-     */
-    private void validerAge(String role, LocalDate dateNaissance) {
-        int age = Period.between(dateNaissance, LocalDate.now()).getYears();
-
-        if (age > AGE_MAXIMUM_PLAUSIBLE) {
-            throw new IllegalArgumentException("La date de naissance semble invalide");
-        }
-
-        Integer ageMinimum = AGE_MINIMUM_PAR_ROLE.get(role);
-        if (ageMinimum != null && age < ageMinimum) {
-            throw new IllegalArgumentException(
-                    "L'âge minimum requis pour le rôle " + role + " est de " + ageMinimum + " ans");
-        }
+    private static int valeur(Integer entier) {
+        return entier == null ? 0 : entier;
     }
 }
