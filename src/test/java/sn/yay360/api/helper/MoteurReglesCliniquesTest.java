@@ -259,4 +259,31 @@ class MoteurReglesCliniquesTest {
                     .containsExactly("Grossesse précoce (16 ans)");
         }
     }
+
+    @Nested
+    class TriageParTypeDeSymptome {
+
+        @Test
+        void appliqueLeNiveauDeBaseDeLaTableDuCahierDesCharges() {
+            assertThat(moteur.trierSymptome(TypeSymptome.SAIGNEMENTS, 10, false, 0).niveau()).isEqualTo(NiveauGravite.URGENT);
+            assertThat(moteur.trierSymptome(TypeSymptome.MAUX_DE_TETE_INTENSES, 10, false, 0).niveau()).isEqualTo(NiveauGravite.ELEVE);
+            assertThat(moteur.trierSymptome(TypeSymptome.VOMISSEMENTS_SEVERES, 10, false, 0).niveau()).isEqualTo(NiveauGravite.MODERE);
+        }
+
+        @Test
+        void unTypeInconnuEstTraiteCommeModere() {
+            var triage = moteur.trierSymptome("TYPE_INCONNU", 10, false, 0);
+
+            assertThat(triage.niveau()).isEqualTo(NiveauGravite.MODERE);
+            assertThat(triage.justifications()).hasSize(1);
+        }
+
+        @Test
+        void ajusteEnsuiteLeNiveauAuContexte() {
+            var triage = moteur.trierSymptome(TypeSymptome.MAUX_DE_TETE_INTENSES, 24, false, 0);
+
+            assertThat(triage.niveau()).isEqualTo(NiveauGravite.URGENT);
+            assertThat(triage.justifications()).anySatisfy(j -> assertThat(j).contains("prééclampsie"));
+        }
+    }
 }

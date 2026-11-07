@@ -13,7 +13,6 @@ import sn.yay360.api.model.RoleUtilisateur;
 import sn.yay360.api.model.StatutAlerte;
 import sn.yay360.api.model.StatutGrossesse;
 import sn.yay360.api.model.TypeNotification;
-import sn.yay360.api.model.TypeSymptome;
 import sn.yay360.api.model.Utilisateur;
 import sn.yay360.api.repo.AlerteMedicaleRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Détecte et gère les alertes médicales déclenchées par les symptômes déclarés (§4.7).
@@ -46,21 +44,6 @@ public class AlerteHelper {
 
     static final String ORIGINE_PATIENTE = "PATIENTE";
 
-    /** Table de triage de base (cahier des charges §4.7). */
-    static final Map<String, String> NIVEAU_PAR_SYMPTOME = Map.ofEntries(
-            Map.entry(TypeSymptome.SAIGNEMENTS, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.DOULEURS_ABDOMINALES, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.PERTE_LIQUIDE, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.DIMINUTION_MOUVEMENTS_BEBE, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.FIEVRE_ELEVEE, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.CONVULSIONS, NiveauGravite.URGENT),
-            Map.entry(TypeSymptome.MAUX_DE_TETE_INTENSES, NiveauGravite.ELEVE),
-            Map.entry(TypeSymptome.OEDEMES_SOUDAINS, NiveauGravite.ELEVE),
-            Map.entry(TypeSymptome.TROUBLES_VISUELS, NiveauGravite.ELEVE),
-            Map.entry(TypeSymptome.VOMISSEMENTS_SEVERES, NiveauGravite.MODERE),
-            Map.entry(TypeSymptome.AUTRE, NiveauGravite.MODERE)
-    );
-
     @PreAuthorize("hasAnyAuthority('FEMME_ENCEINTE', 'CONJOINT')")
     @Transactional
     public AlerteDto declarerSymptome(String emailFemme, DeclarerSymptomeRequest request) {
@@ -79,8 +62,7 @@ public class AlerteHelper {
         int semaine = semainesRevolues(grossesse);
         long alertesRecentes = alerteRepository.countByGrossesseIdAndDateDeclarationAfter(
                 grossesse.getId(), LocalDateTime.now().minusDays(7));
-        MoteurReglesCliniques.ResultatTriage triage = moteur.trier(request.getTypeSymptome(),
-                NIVEAU_PAR_SYMPTOME.getOrDefault(request.getTypeSymptome(), NiveauGravite.MODERE),
+        MoteurReglesCliniques.ResultatTriage triage = moteur.trierSymptome(request.getTypeSymptome(),
                 semaine, Boolean.TRUE.equals(grossesse.getGrossesseARisque()), alertesRecentes);
         String niveauGravite = triage.niveau();
         String recommandation = genererRecommandation(niveauGravite);

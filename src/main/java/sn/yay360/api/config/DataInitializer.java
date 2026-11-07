@@ -1,32 +1,15 @@
 package sn.yay360.api.config;
 
 import sn.yay360.api.helper.CalculObstetricalHelper;
-import sn.yay360.api.model.AlerteMedicale;
 import sn.yay360.api.model.CategorieConseil;
 import sn.yay360.api.model.ConseilGrossesse;
-import sn.yay360.api.model.Consultation;
 import sn.yay360.api.model.EtablissementSante;
 import sn.yay360.api.model.EtapeGrossesse;
-import sn.yay360.api.model.Grossesse;
-import sn.yay360.api.model.NiveauGravite;
-import sn.yay360.api.model.Notification;
-import sn.yay360.api.model.RendezVous;
 import sn.yay360.api.model.RoleUtilisateur;
-import sn.yay360.api.model.StatutAlerte;
-import sn.yay360.api.model.StatutGrossesse;
-import sn.yay360.api.model.StatutRendezVous;
-import sn.yay360.api.model.TypeNotification;
-import sn.yay360.api.model.TypeRendezVous;
-import sn.yay360.api.model.TypeSymptome;
 import sn.yay360.api.model.Utilisateur;
-import sn.yay360.api.repo.AlerteMedicaleRepository;
 import sn.yay360.api.repo.ConseilGrossesseRepository;
-import sn.yay360.api.repo.ConsultationRepository;
 import sn.yay360.api.repo.EtablissementSanteRepository;
 import sn.yay360.api.repo.EtapeGrossesseRepository;
-import sn.yay360.api.repo.GrossesseRepository;
-import sn.yay360.api.repo.NotificationRepository;
-import sn.yay360.api.repo.RendezVousRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -51,22 +32,15 @@ public class DataInitializer implements CommandLineRunner {
     private final EtapeGrossesseRepository etapeGrossesseRepository;
     private final ConseilGrossesseRepository conseilGrossesseRepository;
     private final EtablissementSanteRepository etablissementSanteRepository;
-    private final GrossesseRepository grossesseRepository;
-    private final RendezVousRepository rendezVousRepository;
-    private final ConsultationRepository consultationRepository;
-    private final AlerteMedicaleRepository alerteMedicaleRepository;
-    private final NotificationRepository notificationRepository;
     private final PasswordEncoder passwordEncoder;
     private final CalculObstetricalHelper calcul;
+    private final JeuDeDonneesDemo jeuDeDonneesDemo;
 
     @Value("${yay360.demo-data.enabled:false}")
     private boolean demoDataEnabled;
 
     @Value("${yay360.admin.password:}")
     private String motDePasseAdmin;
-
-    @Value("${yay360.demo-data.password:}")
-    private String motDePasseDemo;
 
     @Override
     @Transactional
@@ -76,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
         seedConseils(admin);
         seedEtablissements();
         if (demoDataEnabled) {
-            seedDonneesDemo();
+            jeuDeDonneesDemo.charger();
         }
     }
 
@@ -114,7 +88,7 @@ public class DataInitializer implements CommandLineRunner {
         return enregistre;
     }
 
-    private static String genererMotDePasse() {
+    static String genererMotDePasse() {
         String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
         SecureRandom aleatoire = new SecureRandom();
         StringBuilder sb = new StringBuilder("Yay-");
@@ -249,20 +223,31 @@ public class DataInitializer implements CommandLineRunner {
     // ==================== ETABLISSEMENTS DE SANTE (DEMO) ====================
 
     private void seedEtablissements() {
-        if (etablissementSanteRepository.count() > 0) {
-            return;
+        // Idempotent par nom : une base déjà initialisée reçoit seulement les établissements manquants.
+        List<String> existants = etablissementSanteRepository.findAll().stream().map(EtablissementSante::getNom).toList();
+        int crees = 0;
+        crees += creerEtablissementSiAbsent(existants, "Hôpital Principal de Dakar", "HOPITAL",
+                "Avenue Nelson Mandela, Dakar", "Dakar", "+221338391212", 14.6708, -17.4335);
+        crees += creerEtablissementSiAbsent(existants, "Centre de Santé Roi Baudouin", "CENTRE_DE_SANTE",
+                "Guédiawaye", "Dakar", "+221338341414", 14.7692, -17.4034);
+        crees += creerEtablissementSiAbsent(existants, "Hôpital Régional de Thiès", "HOPITAL",
+                "Route de Dakar, Thiès", "Thiès", "+221339512727", 14.7910, -16.9256);
+        crees += creerEtablissementSiAbsent(existants, "Centre de Santé de Mbour", "CENTRE_DE_SANTE",
+                "Quartier Escale, Mbour", "Mbour", "+221338000004", 14.4219, -16.9644);
+        crees += creerEtablissementSiAbsent(existants, "Poste de Santé de Ngor", "POSTE_DE_SANTE",
+                "Village de Ngor, Dakar", "Dakar", "+221338000005", 14.7500, -17.5130);
+        if (crees > 0) {
+            log.info("=== [YAY360] {} établissement(s) de santé initialisé(s) (démonstration) ===", crees);
         }
+    }
 
-        creerEtablissement("Hôpital Principal de Dakar", "HOPITAL", "Avenue Nelson Mandela, Dakar",
-                "Dakar", "+221338391212", 14.6708, -17.4335);
-
-        creerEtablissement("Centre de Santé Roi Baudouin", "CENTRE_DE_SANTE", "Guédiawaye",
-                "Dakar", "+221338341414", 14.7692, -17.4034);
-
-        creerEtablissement("Hôpital Régional de Thiès", "HOPITAL", "Route de Dakar, Thiès",
-                "Thiès", "+221339512727", 14.7910, -16.9256);
-
-        log.info("=== [YAY360] 3 établissements de santé initialisés (démonstration) ===");
+    private int creerEtablissementSiAbsent(List<String> existants, String nom, String type, String adresse,
+                                           String ville, String telephone, double latitude, double longitude) {
+        if (existants.contains(nom)) {
+            return 0;
+        }
+        creerEtablissement(nom, type, adresse, ville, telephone, latitude, longitude);
+        return 1;
     }
 
     private void creerEtablissement(String nom, String type, String adresse, String ville,
@@ -277,217 +262,5 @@ public class DataInitializer implements CommandLineRunner {
         etablissement.setLongitude(longitude);
         etablissement.setActif(true);
         etablissementSanteRepository.save(etablissement);
-    }
-
-    // ==================== DOSSIERS DE DEMONSTRATION ====================
-
-    void seedDonneesDemo() {
-        if (motDePasseDemo == null || motDePasseDemo.isBlank()) {
-            motDePasseDemo = genererMotDePasse();
-            log.warn("[YAY360] Mot de passe des comptes de démonstration généré : {} "
-                    + "(définissez YAY360_DEMO_PASSWORD pour le fixer)", motDePasseDemo);
-        }
-        Utilisateur medecin = creerUtilisateurDemo(
-                "medecin.demo@yay360.sn", "DEMO", "Medecin", RoleUtilisateur.MEDECIN, null,
-                LocalDate.of(1980, 4, 12), "+221770000101");
-        Utilisateur sageFemme = creerUtilisateurDemo(
-                "sagefemme.demo@yay360.sn", "DEMO", "Sage Femme", RoleUtilisateur.SAGE_FEMME, null,
-                LocalDate.of(1985, 8, 20), "+221770000102");
-        Utilisateur patiente = creerUtilisateurDemo(
-                "patiente.demo@yay360.sn", "DEMO", "Patiente", RoleUtilisateur.FEMME_ENCEINTE, null,
-                LocalDate.of(1998, 3, 15), "+221770000103");
-        Utilisateur secondePatiente = creerUtilisateurDemo(
-                "patiente2.demo@yay360.sn", "DEMO", "Patiente Deux", RoleUtilisateur.FEMME_ENCEINTE, null,
-                LocalDate.of(1995, 11, 3), "+221770000104");
-        creerUtilisateurDemo(
-                "conjoint.demo@yay360.sn", "DEMO", "Conjoint", RoleUtilisateur.CONJOINT, patiente,
-                LocalDate.of(1994, 1, 7), "+221770000105");
-
-        associerProfessionnels(medecin, sageFemme);
-
-        Grossesse grossesse = creerGrossesseDemo(patiente, 24, true);
-        creerGrossesseDemo(secondePatiente, 10, false);
-
-        List<RendezVous> rendezVous = creerRendezVousDemo(grossesse, patiente, medecin, sageFemme);
-        creerConsultationDemo(grossesse, patiente, medecin, rendezVous);
-        creerAlertesDemo(grossesse, patiente, medecin);
-        creerNotificationsDemo(grossesse, patiente);
-
-        log.info("[YAY360] Dossiers de démonstration fictifs initialisés (comptes *.demo@yay360.sn, "
-                + "mot de passe défini par YAY360_DEMO_PASSWORD)");
-    }
-
-    private Utilisateur creerUtilisateurDemo(String email, String nom, String prenom, String role,
-                                             Utilisateur femmeAssociee, LocalDate dateNaissance, String telephone) {
-        return utilisateurRepository.findByEmailIgnoreCase(email).orElseGet(() -> {
-            Utilisateur utilisateur = new Utilisateur();
-            utilisateur.setNom(nom);
-            utilisateur.setPrenom(prenom);
-            utilisateur.setEmail(email);
-            utilisateur.setMotDePasse(passwordEncoder.encode(motDePasseDemo));
-            utilisateur.setTelephone(telephone);
-            utilisateur.setDateNaissance(dateNaissance);
-            utilisateur.setRole(role);
-            utilisateur.setFemmeAssociee(femmeAssociee);
-            utilisateur.setActif(true);
-            return utilisateurRepository.save(utilisateur);
-        });
-    }
-
-    private void associerProfessionnels(Utilisateur medecin, Utilisateur sageFemme) {
-        EtablissementSante etablissement = etablissementSanteRepository.findAll().stream().findFirst().orElse(null);
-        if (etablissement == null) {
-            return;
-        }
-
-        List<Utilisateur> professionnels = etablissement.getProfessionnels();
-        if (professionnels == null) {
-            professionnels = new ArrayList<>();
-            etablissement.setProfessionnels(professionnels);
-        }
-        ajouterProfessionnelSiAbsent(professionnels, medecin);
-        ajouterProfessionnelSiAbsent(professionnels, sageFemme);
-        etablissementSanteRepository.save(etablissement);
-    }
-
-    private void ajouterProfessionnelSiAbsent(List<Utilisateur> professionnels, Utilisateur utilisateur) {
-        boolean dejaAssocie = professionnels.stream()
-                .anyMatch(professionnel -> professionnel.getId() != null
-                        && professionnel.getId().equals(utilisateur.getId()));
-        if (!dejaAssocie) {
-            professionnels.add(utilisateur);
-        }
-    }
-
-    private Grossesse creerGrossesseDemo(Utilisateur patiente, int semaines, boolean aRisque) {
-        return grossesseRepository.findByFemmeEnceinteIdAndStatut(patiente.getId(), StatutGrossesse.EN_COURS)
-                .orElseGet(() -> {
-                    LocalDate dateDernieresRegles = LocalDate.now().minusWeeks(semaines);
-                    Grossesse grossesse = new Grossesse();
-                    grossesse.setFemmeEnceinte(patiente);
-                    grossesse.setDateDernieresRegles(dateDernieresRegles);
-                    grossesse.setDatePrevueAccouchement(dateDernieresRegles.plusDays(280));
-                    grossesse.setStatut(StatutGrossesse.EN_COURS);
-                    grossesse.setGrossesseARisque(aRisque);
-                    grossesse.setMotifRisque(aRisque ? "DONNÉE DE TEST — suivi renforcé fictif." : null);
-                    grossesse.setNombreGrossessesPrecedentes(1);
-                    grossesse.setAntecedents("Dossier de démonstration : antécédents fictifs.");
-                    return grossesseRepository.save(grossesse);
-                });
-    }
-
-    private List<RendezVous> creerRendezVousDemo(Grossesse grossesse, Utilisateur patiente,
-                                                  Utilisateur medecin, Utilisateur sageFemme) {
-        List<RendezVous> existants = rendezVousRepository.findByGrossesseIdOrderByDateHeureDesc(grossesse.getId());
-        if (!existants.isEmpty()) {
-            return existants;
-        }
-
-        List<RendezVous> rendezVous = new ArrayList<>();
-        rendezVous.add(creerRendezVous(grossesse, patiente, medecin, TypeRendezVous.CONSULTATION_PRENATALE,
-                StatutRendezVous.TERMINE, LocalDateTime.now().minusDays(14),
-                "DONNÉE DE TEST — consultation prénatale de démonstration."));
-        rendezVous.add(creerRendezVous(grossesse, patiente, sageFemme, TypeRendezVous.ECHOGRAPHIE,
-                StatutRendezVous.CONFIRME, LocalDateTime.now().plusDays(2),
-                "DONNÉE DE TEST — échographie de démonstration."));
-        rendezVous.add(creerRendezVous(grossesse, patiente, sageFemme, TypeRendezVous.CONSULTATION_PRENATALE,
-                StatutRendezVous.PLANIFIE, LocalDateTime.now().plusDays(9),
-                "DONNÉE DE TEST — prochain suivi prénatal."));
-        return rendezVous;
-    }
-
-    private RendezVous creerRendezVous(Grossesse grossesse, Utilisateur patiente, Utilisateur professionnel,
-                                        String type, String statut, LocalDateTime dateHeure, String motif) {
-        RendezVous rendezVous = new RendezVous();
-        rendezVous.setGrossesse(grossesse);
-        rendezVous.setFemmeEnceinte(patiente);
-        rendezVous.setProfessionnel(professionnel);
-        rendezVous.setEtablissement(etablissementSanteRepository.findAll().stream().findFirst().orElse(null));
-        rendezVous.setDateHeure(dateHeure);
-        rendezVous.setType(type);
-        rendezVous.setStatut(statut);
-        rendezVous.setMotif(motif);
-        return rendezVousRepository.save(rendezVous);
-    }
-
-    private void creerConsultationDemo(Grossesse grossesse, Utilisateur patiente, Utilisateur medecin,
-                                        List<RendezVous> rendezVous) {
-        if (!consultationRepository.findByGrossesseIdOrderByDateConsultationDesc(grossesse.getId()).isEmpty()) {
-            return;
-        }
-
-        RendezVous rendezVousTermine = rendezVous.stream()
-                .filter(rdv -> StatutRendezVous.TERMINE.equals(rdv.getStatut()))
-                .findFirst()
-                .orElse(null);
-        Consultation consultation = new Consultation();
-        consultation.setGrossesse(grossesse);
-        consultation.setFemmeEnceinte(patiente);
-        consultation.setProfessionnel(medecin);
-        consultation.setRendezVous(rendezVousTermine);
-        consultation.setEtablissement(etablissementSanteRepository.findAll().stream().findFirst().orElse(null));
-        consultation.setDateConsultation(rendezVousTermine != null
-                ? rendezVousTermine.getDateHeure()
-                : LocalDateTime.now().minusDays(14));
-        consultation.setPoidsKg(64.5);
-        consultation.setTensionArterielle("11/7");
-        consultation.setTemperatureC(36.8);
-        consultation.setHauteurUterineCm(22.0);
-        consultation.setBattementsCoeurFoetal(145);
-        consultation.setObservations("DONNÉE DE TEST — constantes fictives, sans valeur médicale.");
-        consultation.setDiagnostic("DONNÉE DE TEST — aucune interprétation clinique.");
-        consultation.setTraitement("Aucun traitement enregistré dans cette donnée fictive.");
-        consultation.setPrescriptions("Aucune prescription réelle.");
-        consultationRepository.save(consultation);
-    }
-
-    private void creerAlertesDemo(Grossesse grossesse, Utilisateur patiente, Utilisateur medecin) {
-        if (!alerteMedicaleRepository.findByGrossesseIdOrderByDateDeclarationDesc(grossesse.getId()).isEmpty()) {
-            return;
-        }
-
-        AlerteMedicale alerteNouvelle = new AlerteMedicale();
-        alerteNouvelle.setGrossesse(grossesse);
-        alerteNouvelle.setFemmeEnceinte(patiente);
-        alerteNouvelle.setTypeSymptome(TypeSymptome.MAUX_DE_TETE_INTENSES);
-        alerteNouvelle.setDescription("DONNÉE DE TEST — exemple fictif d'alerte à examiner.");
-        alerteNouvelle.setNiveauGravite(NiveauGravite.ELEVE);
-        alerteNouvelle.setStatut(StatutAlerte.NOUVELLE);
-        alerteMedicaleRepository.save(alerteNouvelle);
-
-        AlerteMedicale alertePriseEnCharge = new AlerteMedicale();
-        alertePriseEnCharge.setGrossesse(grossesse);
-        alertePriseEnCharge.setFemmeEnceinte(patiente);
-        alertePriseEnCharge.setTypeSymptome(TypeSymptome.DOULEURS_ABDOMINALES);
-        alertePriseEnCharge.setDescription("DONNÉE DE TEST — alerte fictive déjà prise en charge.");
-        alertePriseEnCharge.setNiveauGravite(NiveauGravite.MODERE);
-        alertePriseEnCharge.setStatut(StatutAlerte.PRISE_EN_CHARGE);
-        alertePriseEnCharge.setProfessionnelPriseEnCharge(medecin);
-        alertePriseEnCharge.setNotesPriseEnCharge("DONNÉE DE TEST — suivi de démonstration uniquement.");
-        alerteMedicaleRepository.save(alertePriseEnCharge);
-    }
-
-    private void creerNotificationsDemo(Grossesse grossesse, Utilisateur patiente) {
-        if (!notificationRepository.findByDestinataireIdOrderByDateEnvoiDesc(patiente.getId()).isEmpty()) {
-            return;
-        }
-
-        Notification notificationRendezVous = new Notification();
-        notificationRendezVous.setDestinataire(patiente);
-        notificationRendezVous.setGrossesse(grossesse);
-        notificationRendezVous.setType(TypeNotification.RAPPEL_CONSULTATION);
-        notificationRendezVous.setTitre("Rendez-vous de démonstration");
-        notificationRendezVous.setMessage("DONNÉE DE TEST — rendez-vous prénatal prévu prochainement.");
-        notificationRendezVous.setLue(false);
-        notificationRepository.save(notificationRendezVous);
-
-        Notification notificationConseil = new Notification();
-        notificationConseil.setDestinataire(patiente);
-        notificationConseil.setGrossesse(grossesse);
-        notificationConseil.setType(TypeNotification.INFORMATION);
-        notificationConseil.setTitre("Bienvenue dans le dossier de démonstration");
-        notificationConseil.setMessage("Toutes les informations de ce dossier sont fictives et destinées aux tests.");
-        notificationConseil.setLue(true);
-        notificationRepository.save(notificationConseil);
     }
 }

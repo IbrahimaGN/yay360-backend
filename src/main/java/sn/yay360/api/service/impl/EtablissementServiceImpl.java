@@ -37,6 +37,11 @@ public class EtablissementServiceImpl implements EtablissementService {
     }
 
     @Override
+    public List<EtablissementDto> mesEtablissements(String emailProfessionnel) {
+        return etablissementHelper.mesEtablissements(emailProfessionnel);
+    }
+
+    @Override
     public EtablissementDto creer(EtablissementRequest request) {
         return etablissementHelper.creer(request);
     }

@@ -29,6 +29,12 @@ public class EtablissementController {
         return etablissementService.listerActifs();
     }
 
+    @GetMapping("/mes-etablissements")
+    @Operation(summary = "Établissements actifs où j'exerce (médecin, sage-femme)")
+    public List<EtablissementDto> mesEtablissements(org.springframework.security.core.Authentication authentication) {
+        return etablissementService.mesEtablissements(authentication.getName());
+    }
+
     @GetMapping("/tous")
     @Operation(summary = "Lister tous les établissements, actifs et inactifs (Admin)")
     public List<EtablissementDto> listerTous() {

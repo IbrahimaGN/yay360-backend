@@ -165,14 +165,41 @@ public class MoteurReglesCliniques {
     public record ResultatTriage(String niveau, List<String> justifications) {
     }
 
+    /** Niveau de base de chaque symptôme (cahier des charges §4.7), avant ajustement au contexte. */
+    private static final Map<String, String> NIVEAU_DE_BASE = Map.ofEntries(
+            Map.entry(TypeSymptome.SAIGNEMENTS, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.DOULEURS_ABDOMINALES, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.PERTE_LIQUIDE, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.DIMINUTION_MOUVEMENTS_BEBE, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.FIEVRE_ELEVEE, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.CONVULSIONS, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.MAUX_DE_TETE_INTENSES, NiveauGravite.ELEVE),
+            Map.entry(TypeSymptome.OEDEMES_SOUDAINS, NiveauGravite.ELEVE),
+            Map.entry(TypeSymptome.TROUBLES_VISUELS, NiveauGravite.ELEVE),
+            Map.entry(TypeSymptome.VOMISSEMENTS_SEVERES, NiveauGravite.MODERE),
+            Map.entry(TypeSymptome.AUTRE, NiveauGravite.MODERE)
+    );
+
+    /**
+     * Point d'entrée unique du triage d'un symptôme déclaré : niveau de base de la table §4.7,
+     * puis ajustements au contexte de la grossesse ({@link #trier}).
+     *
+     * @param alertesSeptDerniersJours alertes déjà déclarées sur cette grossesse ces 7 derniers jours
+     */
+    public ResultatTriage trierSymptome(String typeSymptome, int semaine, boolean grossesseARisque,
+                                        long alertesSeptDerniersJours) {
+        return trier(typeSymptome, NIVEAU_DE_BASE.getOrDefault(typeSymptome, NiveauGravite.MODERE),
+                semaine, grossesseARisque, alertesSeptDerniersJours);
+    }
+
     /**
      * Triage d'un symptôme déclaré : niveau de base (table du cahier des charges §4.7), ajusté
      * selon le contexte de la grossesse. Chaque ajustement est justifié.
      *
      * @param alertesSeptDerniersJours alertes déjà déclarées sur cette grossesse ces 7 derniers jours
      */
-    public ResultatTriage trier(String typeSymptome, String niveauDeBase, int semaine, boolean grossesseARisque,
-                                long alertesSeptDerniersJours) {
+    ResultatTriage trier(String typeSymptome, String niveauDeBase, int semaine, boolean grossesseARisque,
+                         long alertesSeptDerniersJours) {
         List<String> justifications = new ArrayList<>();
         String niveau = niveauDeBase;
         justifications.add("Niveau de base pour « " + typeSymptome + " » : " + niveauDeBase + ".");

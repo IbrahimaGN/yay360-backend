@@ -46,6 +46,17 @@ public class EtablissementHelper {
         return etablissementMapper.versDto(trouverParId(id));
     }
 
+    /** Établissements actifs où exerce le soignant connecté (rattachement, planification). */
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    public List<EtablissementDto> mesEtablissements(String emailProfessionnel) {
+        Utilisateur professionnel = utilisateurRepository.findByEmailIgnoreCase(emailProfessionnel)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+        return etablissementRepository.findByProfessionnelsId(professionnel.getId()).stream()
+                .filter(e -> Boolean.TRUE.equals(e.getActif()))
+                .map(etablissementMapper::versDto)
+                .toList();
+    }
+
     @PreAuthorize("hasAuthority('ADMIN')")
     public List<EtablissementDto> listerTous() {
         return etablissementRepository.findAll().stream()
