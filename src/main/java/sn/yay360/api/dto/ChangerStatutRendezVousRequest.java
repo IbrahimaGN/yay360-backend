@@ -10,6 +10,6 @@ import lombok.Setter;
 public class ChangerStatutRendezVousRequest {
 
     @NotBlank(message = "Le statut est obligatoire")
-    @Pattern(regexp = "PLANIFIE|CONFIRME|ANNULE|TERMINE|ABSENT", message = "Statut invalide")
+    @Pattern(regexp = "CONFIRME|ANNULE|TERMINE|ABSENT", message = "Statut invalide : CONFIRME, ANNULE, TERMINE ou ABSENT")
     private String statut;
 }

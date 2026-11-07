@@ -30,7 +30,11 @@ public class ConsultationMapper {
                 consultation.getDiagnostic(),
                 consultation.getTraitement(),
                 consultation.getPrescriptions(),
-                consultation.getDateCreation()
+                consultation.getDateCreation(),
+                consultation.getSignauxCliniques() == null || consultation.getSignauxCliniques().isBlank()
+                        ? java.util.List.of()
+                        : java.util.Arrays.stream(consultation.getSignauxCliniques().split("\n"))
+                                .map(l -> l.substring(l.lastIndexOf('|') + 1)).toList()
         );
     }
 }

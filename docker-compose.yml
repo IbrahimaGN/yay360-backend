@@ -1,4 +1,5 @@
-version: "3.9"
+# Les secrets sont lus depuis le fichier .env (non versionné).
+# Copier .env.example en .env et renseigner les valeurs avant le premier lancement.
 
 services:
   yay360-db:
@@ -7,14 +8,16 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: yay360
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit être défini dans .env}
     ports:
-      - "5432:5432"
+      # Exposé uniquement sur la machine locale, sur 5433 par défaut
+      # (5432 est souvent déjà pris par un PostgreSQL installé sur le poste).
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
     volumes:
       - yay360-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d yay360"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d yay360"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,26 +27,28 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: yay360-api
-    restart: unless-stopped
+    restart: on-failure:5
     depends_on:
       yay360-db:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://yay360-db:5432/yay360
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: admin123
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      YAY360_ASSISTANT_ENABLED: ${YAY360_ASSISTANT_ENABLED:-false}
-      YAY360_ASSISTANT_ENDPOINT: ${YAY360_ASSISTANT_ENDPOINT:-https://api.openai.com/v1/chat/completions}
-      YAY360_ASSISTANT_API_KEY: ${YAY360_ASSISTANT_API_KEY:-}
-      YAY360_ASSISTANT_MODEL: ${YAY360_ASSISTANT_MODEL:-gpt-4o-mini}
-      YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT: ${YAY360_ASSISTANT_TRANSCRIPTION_ENDPOINT:-https://api.openai.com/v1/audio/transcriptions}
-      YAY360_ASSISTANT_TRANSCRIPTION_MODEL: ${YAY360_ASSISTANT_TRANSCRIPTION_MODEL:-whisper-1}
-      YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE: ${YAY360_ASSISTANT_TRANSCRIPTION_LANGUAGE:-fr}
-      YAY360_ASSISTANT_SPEECH_ENDPOINT: ${YAY360_ASSISTANT_SPEECH_ENDPOINT:-https://api.openai.com/v1/audio/speech}
-      YAY360_ASSISTANT_SPEECH_MODEL: ${YAY360_ASSISTANT_SPEECH_MODEL:-tts-1}
-      YAY360_ASSISTANT_SPEECH_VOICE: ${YAY360_ASSISTANT_SPEECH_VOICE:-alloy}
-      YAY360_ASSISTANT_MAX_AUDIO_BYTES: ${YAY360_ASSISTANT_MAX_AUDIO_BYTES:-10485760}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit être défini dans .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET doit être défini dans .env (32 caractères minimum)}
+      YAY360_ADMIN_PASSWORD: ${YAY360_ADMIN_PASSWORD:-}
+      YAY360_DEMO_DATA_ENABLED: ${YAY360_DEMO_DATA_ENABLED:-false}
+      YAY360_DEMO_PASSWORD: ${YAY360_DEMO_PASSWORD:-}
+      YAY360_FRONTEND_URL: ${YAY360_FRONTEND_URL:-http://localhost:4200}
+      YAY360_CORS_ORIGINS: ${YAY360_CORS_ORIGINS:-http://localhost:*,http://127.0.0.1:*,http://10.0.2.2:*}
+      YAY360_SWAGGER_ENABLED: ${YAY360_SWAGGER_ENABLED:-false}
+      # Emails (facultatif) : sans SMTP_HOST, aucun email n'est envoyé
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      YAY360_MAIL_FROM: ${YAY360_MAIL_FROM:-no-reply@yay360.sn}
+      YAY360_MAIL_JOURNALISER_LIENS: ${YAY360_MAIL_JOURNALISER_LIENS:-false}
     ports:
       - "8080:8080"
 
@@ -58,7 +63,8 @@ services:
     container_name: yay360-web
     restart: unless-stopped
     depends_on:
-      - yay360-api
+      yay360-api:
+        condition: service_healthy
     ports:
       - "4200:80"
 

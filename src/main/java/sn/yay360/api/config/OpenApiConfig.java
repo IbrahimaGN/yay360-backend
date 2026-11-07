@@ -20,8 +20,8 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("YAY360 API")
                         .description("Plateforme web et mobile intelligente de suivi prénatal de la santé "
-                                + "maternelle destinée aux femmes enceintes, avec partage familial sécurisé "
-                                + "et assistant conversationnel d'information générale.")
+                                + "maternelle destinée aux femmes enceintes et aux professionnels de santé, "
+                                + "avec partage familial sécurisé.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("YAY360")

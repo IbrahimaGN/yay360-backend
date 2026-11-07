@@ -14,6 +14,7 @@ import sn.yay360.api.repo.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
+@Transactional
 public class EtablissementHelper {
 
     private final EtablissementSanteRepository etablissementRepository;
@@ -42,6 +44,17 @@ public class EtablissementHelper {
 
     public EtablissementDto obtenirParId(Long id) {
         return etablissementMapper.versDto(trouverParId(id));
+    }
+
+    /** Établissements actifs où exerce le soignant connecté (rattachement, planification). */
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    public List<EtablissementDto> mesEtablissements(String emailProfessionnel) {
+        Utilisateur professionnel = utilisateurRepository.findByEmailIgnoreCase(emailProfessionnel)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+        return etablissementRepository.findByProfessionnelsId(professionnel.getId()).stream()
+                .filter(e -> Boolean.TRUE.equals(e.getActif()))
+                .map(etablissementMapper::versDto)
+                .toList();
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")

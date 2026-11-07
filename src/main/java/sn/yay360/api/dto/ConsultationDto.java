@@ -34,4 +34,6 @@ public class ConsultationDto {
     private String traitement;
     private String prescriptions;
     private LocalDateTime dateCreation;
+    /** Signaux détectés automatiquement par le moteur de règles sur les constantes. */
+    private java.util.List<String> signauxCliniques;
 }

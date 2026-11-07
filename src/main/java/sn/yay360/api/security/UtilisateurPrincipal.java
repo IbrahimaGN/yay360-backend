@@ -46,7 +46,8 @@ public class UtilisateurPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return utilisateur.getVerrouilleJusqua() == null
+                || utilisateur.getVerrouilleJusqua().isBefore(java.time.LocalDateTime.now());
     }
 
     @Override

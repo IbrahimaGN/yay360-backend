@@ -15,5 +15,6 @@ public class ModifierRendezVousRequest {
     @Future(message = "La date du rendez-vous doit être dans le futur")
     private LocalDateTime dateHeure;
 
+    @jakarta.validation.constraints.Size(max = 500, message = "Le motif ne doit pas dépasser 500 caractères")
     private String motif;
 }

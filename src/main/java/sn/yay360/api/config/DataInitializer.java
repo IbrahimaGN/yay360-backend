@@ -12,12 +12,18 @@ import sn.yay360.api.repo.EtablissementSanteRepository;
 import sn.yay360.api.repo.EtapeGrossesseRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
@@ -28,13 +34,24 @@ public class DataInitializer implements CommandLineRunner {
     private final EtablissementSanteRepository etablissementSanteRepository;
     private final PasswordEncoder passwordEncoder;
     private final CalculObstetricalHelper calcul;
+    private final JeuDeDonneesDemo jeuDeDonneesDemo;
+
+    @Value("${yay360.demo-data.enabled:false}")
+    private boolean demoDataEnabled;
+
+    @Value("${yay360.admin.password:}")
+    private String motDePasseAdmin;
 
     @Override
+    @Transactional
     public void run(String... args) {
         Utilisateur admin = seedAdmin();
         seedEtapesGrossesse();
         seedConseils(admin);
         seedEtablissements();
+        if (demoDataEnabled) {
+            jeuDeDonneesDemo.charger();
+        }
     }
 
     // ==================== UTILISATEUR ADMIN ====================
@@ -42,15 +59,17 @@ public class DataInitializer implements CommandLineRunner {
     private Utilisateur seedAdmin() {
         String emailAdmin = "admin@yay360.sn";
 
-        if (utilisateurRepository.existsByEmail(emailAdmin)) {
-            return utilisateurRepository.findByEmail(emailAdmin).orElseThrow();
+        if (utilisateurRepository.existsByEmailIgnoreCase(emailAdmin)) {
+            return utilisateurRepository.findByEmailIgnoreCase(emailAdmin).orElseThrow();
         }
 
         Utilisateur admin = new Utilisateur();
         admin.setNom("GNINGUE");
         admin.setPrenom("Ibrahima");
         admin.setEmail(emailAdmin);
-        admin.setMotDePasse(passwordEncoder.encode("Admin@2026"));
+        boolean motDePasseGenere = motDePasseAdmin == null || motDePasseAdmin.isBlank();
+        String motDePasse = motDePasseGenere ? genererMotDePasse() : motDePasseAdmin;
+        admin.setMotDePasse(passwordEncoder.encode(motDePasse));
         admin.setTelephone("+221785187505");
         admin.setDateNaissance(LocalDate.of(1999, 2, 21));
         admin.setRole(RoleUtilisateur.ADMIN);
@@ -58,12 +77,25 @@ public class DataInitializer implements CommandLineRunner {
 
         Utilisateur enregistre = utilisateurRepository.save(admin);
 
-        System.out.println("=== [YAY360] Compte administrateur initialisé ===");
-        System.out.println("Email : " + emailAdmin);
-        System.out.println("Mot de passe : Admin@2026");
-        System.out.println("==================================================");
+        if (motDePasseGenere) {
+            // Affiché une seule fois, à la création : à changer dès la première connexion.
+            log.warn("[YAY360] Compte administrateur {} créé avec un mot de passe généré : {} "
+                    + "(définissez YAY360_ADMIN_PASSWORD pour le fixer)", emailAdmin, motDePasse);
+        } else {
+            log.info("[YAY360] Compte administrateur {} créé (mot de passe issu de YAY360_ADMIN_PASSWORD)", emailAdmin);
+        }
 
         return enregistre;
+    }
+
+    static String genererMotDePasse() {
+        String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        SecureRandom aleatoire = new SecureRandom();
+        StringBuilder sb = new StringBuilder("Yay-");
+        for (int i = 0; i < 16; i++) {
+            sb.append(alphabet.charAt(aleatoire.nextInt(alphabet.length())));
+        }
+        return sb.append('9').toString();
     }
 
     // ==================== ETAPES DE GROSSESSE (1 A 40 SEMAINES) ====================
@@ -78,8 +110,7 @@ public class DataInitializer implements CommandLineRunner {
             etapeGrossesseRepository.save(etape);
         }
 
-        System.out.println("=== [YAY360] 40 étapes de grossesse initialisées (contenu par défaut) ===");
-        System.out.println("Ce contenu est administrable via /etapes-grossesse par les professionnels de santé.");
+        log.info("[YAY360] 40 étapes de grossesse initialisées (contenu administrable via /etapes-grossesse)");
     }
 
     private EtapeGrossesse construireEtape(int semaine) {
@@ -172,7 +203,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Ne jamais remplacer un avis médical",
                 "Les conseils de la plateforme accompagnent le suivi mais ne remplacent jamais une consultation avec un professionnel de santé.");
 
-        System.out.println("=== [YAY360] Bibliothèque de conseils initialisée (8 conseils de démonstration) ===");
+        log.info("=== [YAY360] Bibliothèque de conseils initialisée (8 conseils de démonstration) ===");
     }
 
     private void creerConseil(Utilisateur auteur, int semaineDebut, int semaineFin, String categorie,
@@ -192,20 +223,31 @@ public class DataInitializer implements CommandLineRunner {
     // ==================== ETABLISSEMENTS DE SANTE (DEMO) ====================
 
     private void seedEtablissements() {
-        if (etablissementSanteRepository.count() > 0) {
-            return;
+        // Idempotent par nom : une base déjà initialisée reçoit seulement les établissements manquants.
+        List<String> existants = etablissementSanteRepository.findAll().stream().map(EtablissementSante::getNom).toList();
+        int crees = 0;
+        crees += creerEtablissementSiAbsent(existants, "Hôpital Principal de Dakar", "HOPITAL",
+                "Avenue Nelson Mandela, Dakar", "Dakar", "+221338391212", 14.6708, -17.4335);
+        crees += creerEtablissementSiAbsent(existants, "Centre de Santé Roi Baudouin", "CENTRE_DE_SANTE",
+                "Guédiawaye", "Dakar", "+221338341414", 14.7692, -17.4034);
+        crees += creerEtablissementSiAbsent(existants, "Hôpital Régional de Thiès", "HOPITAL",
+                "Route de Dakar, Thiès", "Thiès", "+221339512727", 14.7910, -16.9256);
+        crees += creerEtablissementSiAbsent(existants, "Centre de Santé de Mbour", "CENTRE_DE_SANTE",
+                "Quartier Escale, Mbour", "Mbour", "+221338000004", 14.4219, -16.9644);
+        crees += creerEtablissementSiAbsent(existants, "Poste de Santé de Ngor", "POSTE_DE_SANTE",
+                "Village de Ngor, Dakar", "Dakar", "+221338000005", 14.7500, -17.5130);
+        if (crees > 0) {
+            log.info("=== [YAY360] {} établissement(s) de santé initialisé(s) (démonstration) ===", crees);
         }
+    }
 
-        creerEtablissement("Hôpital Principal de Dakar", "HOPITAL", "Avenue Nelson Mandela, Dakar",
-                "Dakar", "+221338391212", 14.6708, -17.4335);
-
-        creerEtablissement("Centre de Santé Roi Baudouin", "CENTRE_DE_SANTE", "Guédiawaye",
-                "Dakar", "+221338341414", 14.7692, -17.4034);
-
-        creerEtablissement("Hôpital Régional de Thiès", "HOPITAL", "Route de Dakar, Thiès",
-                "Thiès", "+221339512727", 14.7910, -16.9256);
-
-        System.out.println("=== [YAY360] 3 établissements de santé initialisés (démonstration) ===");
+    private int creerEtablissementSiAbsent(List<String> existants, String nom, String type, String adresse,
+                                           String ville, String telephone, double latitude, double longitude) {
+        if (existants.contains(nom)) {
+            return 0;
+        }
+        creerEtablissement(nom, type, adresse, ville, telephone, latitude, longitude);
+        return 1;
     }
 
     private void creerEtablissement(String nom, String type, String adresse, String ville,

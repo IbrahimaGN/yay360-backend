@@ -28,7 +28,8 @@ class DataInitializerTest {
                 mock(ConseilGrossesseRepository.class),
                 mock(EtablissementSanteRepository.class),
                 mock(PasswordEncoder.class),
-                new CalculObstetricalHelper()
+                new CalculObstetricalHelper(),
+                mock(JeuDeDonneesDemo.class)
         );
     }
 
@@ -43,5 +44,4 @@ class DataInitializerTest {
                 .extracting(EtapeGrossesse::getSemaine)
                 .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, 40).boxed().toList());
     }
-
 }

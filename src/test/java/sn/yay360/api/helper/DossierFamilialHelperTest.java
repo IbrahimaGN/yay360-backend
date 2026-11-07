@@ -7,6 +7,9 @@ import sn.yay360.api.model.RoleUtilisateur;
 import sn.yay360.api.model.Utilisateur;
 import sn.yay360.api.repo.InvitationConjointRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
+import sn.yay360.api.security.JetonSecurise;
+import sn.yay360.api.service.EmailService;
+import sn.yay360.api.dto.InvitationConjointResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,18 +28,20 @@ class DossierFamilialHelperTest {
     private UtilisateurRepository utilisateurRepository;
     private InvitationConjointRepository invitationRepository;
     private DossierFamilialHelper helper;
+    private EmailService emailService;
     private Utilisateur femme;
 
     @BeforeEach
     void setUp() {
         utilisateurRepository = mock(UtilisateurRepository.class);
         invitationRepository = mock(InvitationConjointRepository.class);
-        helper = new DossierFamilialHelper(utilisateurRepository, invitationRepository);
+        emailService = mock(EmailService.class);
+        helper = new DossierFamilialHelper(utilisateurRepository, invitationRepository, emailService);
         femme = new Utilisateur();
         femme.setId(7L);
         femme.setEmail("awa@example.com");
         femme.setRole(RoleUtilisateur.FEMME_ENCEINTE);
-        when(utilisateurRepository.findByEmail(femme.getEmail())).thenReturn(Optional.of(femme));
+        when(utilisateurRepository.findByEmailIgnoreCase(femme.getEmail())).thenReturn(Optional.of(femme));
         when(utilisateurRepository.findByFemmeAssocieeId(7L)).thenReturn(Optional.empty());
         when(utilisateurRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
         when(invitationRepository.existsByEmailIgnoreCaseAndAccepteeFalseAndDateExpirationAfter(
@@ -49,13 +54,17 @@ class DossierFamilialHelperTest {
         request.setEmail("  Mari@Example.com ");
 
         ArgumentCaptor<InvitationConjoint> captor = ArgumentCaptor.forClass(InvitationConjoint.class);
-        helper.inviterConjoint(femme.getEmail(), request);
+        InvitationConjointResponse reponse = helper.inviterConjoint(femme.getEmail(), request);
 
         verify(invitationRepository).save(captor.capture());
         InvitationConjoint invitation = captor.getValue();
         assertThat(invitation.getFemme()).isSameAs(femme);
         assertThat(invitation.getEmail()).isEqualTo("mari@example.com");
-        assertThat(invitation.getToken()).hasSize(43);
+        // Le code est remis à la femme, seule son empreinte SHA-256 est stockée
+        assertThat(reponse.getCode()).isNotBlank();
+        assertThat(invitation.getToken()).isEqualTo(JetonSecurise.hacher(reponse.getCode()));
+        assertThat(invitation.getToken()).doesNotContain(reponse.getCode());
+        verify(emailService).envoyer(eq("mari@example.com"), anyString(), anyString(), contains(reponse.getCode()));
         assertThat(invitation.getDateExpiration()).isAfter(LocalDateTime.now().plusHours(71));
         assertThat(invitation.getDateExpiration()).isBefore(LocalDateTime.now().plusHours(73));
         assertThat(invitation.isAcceptee()).isFalse();

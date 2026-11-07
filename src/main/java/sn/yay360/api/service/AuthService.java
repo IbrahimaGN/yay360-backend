@@ -14,5 +14,5 @@ public interface AuthService {
 
     void reinitialiserMotDePasse(ResetPasswordRequest request);
 
-    void changerMotDePasse(String email, ChangePasswordRequest request);
+    LoginResponse changerMotDePasse(String email, ChangePasswordRequest request);
 }

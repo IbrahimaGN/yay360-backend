@@ -1,6 +1,9 @@
 package sn.yay360.api.controller;
 
+import sn.yay360.api.dto.CreationProfessionnelResponse;
+import sn.yay360.api.dto.CreerProfessionnelRequest;
 import sn.yay360.api.dto.MessageResponse;
+import org.springframework.http.HttpStatus;
 import sn.yay360.api.dto.UpdateProfileRequest;
 import sn.yay360.api.dto.UtilisateurDto;
 import sn.yay360.api.security.UtilisateurPrincipal;
@@ -33,6 +36,14 @@ public class UtilisateurController {
     public UtilisateurDto mettreAJourMonProfil(Authentication authentication,
                                                 @Valid @RequestBody UpdateProfileRequest request) {
         return utilisateurService.mettreAJourProfil(authentication.getName(), request);
+    }
+
+    @PostMapping("/professionnels")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Créer un compte médecin, sage-femme ou administrateur (Admin)",
+            description = "Renvoie un mot de passe temporaire, affiché une seule fois, à changer à la première connexion.")
+    public CreationProfessionnelResponse creerProfessionnel(@Valid @RequestBody CreerProfessionnelRequest request) {
+        return utilisateurService.creerProfessionnel(request);
     }
 
     @GetMapping

@@ -32,7 +32,8 @@ public class UtilisateurMapper {
                 utilisateur.getEmail(),
                 utilisateur.getNom(),
                 utilisateur.getPrenom(),
-                utilisateur.getRole()
+                utilisateur.getRole(),
+                Boolean.TRUE.equals(utilisateur.getMotDePasseTemporaire())
         );
     }
 }

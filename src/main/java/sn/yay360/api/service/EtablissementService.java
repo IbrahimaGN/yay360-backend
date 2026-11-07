@@ -16,6 +16,8 @@ public interface EtablissementService {
 
     List<EtablissementDto> listerTous();
 
+    List<EtablissementDto> mesEtablissements(String emailProfessionnel);
+
     EtablissementDto creer(EtablissementRequest request);
 
     EtablissementDto mettreAJour(Long id, EtablissementRequest request);

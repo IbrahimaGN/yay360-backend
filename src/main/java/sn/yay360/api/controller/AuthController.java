@@ -49,7 +49,8 @@ public class AuthController {
     @Operation(summary = "Demande de réinitialisation du mot de passe")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.motDePasseOublie(request);
-        return ResponseEntity.ok(new MessageResponse("Un lien de réinitialisation a été envoyé si l'email existe"));
+        return ResponseEntity.ok(new MessageResponse(
+                "Si un compte actif est associé à cet email, un lien de réinitialisation vient d'être envoyé."));
     }
 
     @PostMapping("/reset-password")
@@ -60,10 +61,12 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    @Operation(summary = "Changement du mot de passe (utilisateur connecté)")
-    public ResponseEntity<MessageResponse> changePassword(Authentication authentication,
-                                                            @Valid @RequestBody ChangePasswordRequest request) {
-        authService.changerMotDePasse(authentication.getName(), request);
-        return ResponseEntity.ok(new MessageResponse("Mot de passe modifié avec succès"));
+    @Operation(summary = "Changement du mot de passe (utilisateur connecté)",
+            description = "Renvoie un nouveau jeton : les jetons émis avant le changement sont invalidés.")
+    public ResponseEntity<ChangementMotDePasseResponse> changePassword(Authentication authentication,
+                                                                       @Valid @RequestBody ChangePasswordRequest request) {
+        LoginResponse connexion = authService.changerMotDePasse(authentication.getName(), request);
+        return ResponseEntity.ok(new ChangementMotDePasseResponse("Mot de passe modifié avec succès",
+                connexion.getToken()));
     }
 }

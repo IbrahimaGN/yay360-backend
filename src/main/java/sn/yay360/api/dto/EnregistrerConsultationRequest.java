@@ -23,7 +23,18 @@ public class EnregistrerConsultationRequest {
     @DecimalMax(value = "250.0", message = "Le poids semble invalide")
     private Double poidsKg;
 
+    /** Format « systolique/diastolique » en mmHg, par exemple 120/80. */
+    @jakarta.validation.constraints.Pattern(regexp = "^\\d{2,3}/\\d{2,3}$",
+            message = "La tension artérielle doit être au format systolique/diastolique, par exemple 120/80")
     private String tensionArterielle;
+
+    /** Refuse une tension incohérente : saisie en cmHg (16/11), valeurs inversées, hors bornes. */
+    @jakarta.validation.constraints.AssertTrue(message = "Tension artérielle incohérente : saisissez-la en mmHg "
+            + "(systolique 60 à 260, diastolique 30 à 160, systolique supérieure à la diastolique), par exemple 120/80")
+    public boolean isTensionArterielleCoherente() {
+        return tensionArterielle == null || !tensionArterielle.matches("\\d{2,3}/\\d{2,3}")
+                || sn.yay360.api.helper.MoteurReglesCliniques.lireTension(tensionArterielle) != null;
+    }
 
     // Bornes larges pour ne jamais bloquer une valeur cliniquement anormale
     // (fièvre élevée, hypothermie) : seules les erreurs de saisie grossières sont rejetées.

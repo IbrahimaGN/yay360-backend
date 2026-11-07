@@ -11,6 +11,9 @@ import sn.yay360.api.repo.NotificationRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,12 +28,29 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
+@Transactional
 public class NotificationHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationHelper.class);
 
     private final NotificationRepository notificationRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final NotificationMapper notificationMapper;
 
+    /** Notification destinée à un soignant : pas de copie au conjoint. */
+    public Notification envoyerSansCopieConjoint(Utilisateur destinataire, Grossesse grossesse, String type,
+                                                 String titre, String message) {
+        Notification notification = new Notification();
+        notification.setDestinataire(destinataire);
+        notification.setGrossesse(grossesse);
+        notification.setType(type);
+        notification.setTitre(titre);
+        notification.setMessage(message);
+        notification.setLue(false);
+        return notificationRepository.save(notification);
+    }
+
+    /** Notification destinée à une patiente : copie automatique à son conjoint lié (§4.3). */
     public Notification envoyer(Utilisateur destinataire, Grossesse grossesse, String type, String titre, String message) {
         Notification notification = new Notification();
         notification.setDestinataire(destinataire);
@@ -52,13 +72,8 @@ public class NotificationHelper {
             notificationRepository.save(copie);
         });
 
-        // Simulation d'envoi (SMS/push) en console
-        System.out.println("=== [YAY360] Notification envoyée ===");
-        System.out.println("Destinataire : " + destinataire.getEmail() + " (" + destinataire.getTelephone() + ")");
-        System.out.println("Type : " + type);
-        System.out.println("Titre : " + titre);
-        System.out.println("Message : " + message);
-        System.out.println("======================================");
+        // Pas de donnée personnelle ni médicale dans les logs : identifiant et type uniquement
+        log.debug("[YAY360] Notification enregistrée -> destinataireId={}, type={}", destinataire.getId(), type);
 
         return enregistree;
     }
@@ -109,7 +124,7 @@ public class NotificationHelper {
     }
 
     private Utilisateur trouverUtilisateur(String email) {
-        return utilisateurRepository.findByEmail(email)
+        return utilisateurRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + email));
     }
 }

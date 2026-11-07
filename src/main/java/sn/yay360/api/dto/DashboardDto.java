@@ -38,6 +38,15 @@ public class DashboardDto {
     private long nombreAlertesPrisesEnCharge;
     private long nombreAlertesResolues;
     private long nombreAlertesUrgentes;
+    private Map<String, Long> repartitionAlertesNonResoluesParGravite;
+
+    // --- Indicateurs de pilotage (cahier des charges §4.8) ---
+    /** Grossesses à risque en cours / grossesses en cours, en %. */
+    private double ratioGrossessesARisque;
+    /** Alertes résolues / alertes déclarées, en %. */
+    private double tauxResolutionAlertes;
+    /** Délai moyen entre la déclaration d'une alerte et sa prise en charge, en minutes. */
+    private Double delaiMoyenPriseEnChargeMinutes;
 
     // --- Établissements ---
     private long nombreEtablissementsActifs;

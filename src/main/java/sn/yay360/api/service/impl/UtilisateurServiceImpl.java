@@ -1,5 +1,7 @@
 package sn.yay360.api.service.impl;
 
+import sn.yay360.api.dto.CreationProfessionnelResponse;
+import sn.yay360.api.dto.CreerProfessionnelRequest;
 import sn.yay360.api.dto.UpdateProfileRequest;
 import sn.yay360.api.dto.UtilisateurDto;
 import sn.yay360.api.helper.UtilisateurHelper;
@@ -18,6 +20,11 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     @Override
     public UtilisateurDto obtenirProfil(String email) {
         return utilisateurHelper.obtenirProfil(email);
+    }
+
+    @Override
+    public CreationProfessionnelResponse creerProfessionnel(CreerProfessionnelRequest request) {
+        return utilisateurHelper.creerProfessionnel(request);
     }
 
     @Override

@@ -1,10 +1,12 @@
 package sn.yay360.api.service.impl;
 
-import sn.yay360.api.dto.CalendrierGrossesseDto;
+import sn.yay360.api.dto.*;
 import sn.yay360.api.helper.CalendrierHelper;
 import sn.yay360.api.service.CalendrierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +20,7 @@ public class CalendrierServiceImpl implements CalendrierService {
     }
 
     @Override
-    public CalendrierGrossesseDto obtenirCalendrierParId(Long grossesseId) {
-        return calendrierHelper.obtenirCalendrierParId(grossesseId);
+    public CalendrierGrossesseDto obtenirCalendrierParId(String email, Long grossesseId) {
+        return calendrierHelper.obtenirCalendrierParId(email, grossesseId);
     }
 }

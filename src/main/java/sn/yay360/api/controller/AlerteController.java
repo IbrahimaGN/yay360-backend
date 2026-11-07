@@ -18,53 +18,53 @@ import java.util.List;
 @RestController
 @RequestMapping("/alertes")
 @RequiredArgsConstructor
-@Tag(name = "Alertes médicales", description = "Détection et gestion des situations nécessitant une vigilance particulière (§5.11)")
+@Tag(name = "Alertes médicales", description = "Triage des symptômes et prise en charge des urgences (§4.7)")
 public class AlerteController {
 
     private final AlerteService alerteService;
 
     @PostMapping
-    @Operation(summary = "Déclarer un symptôme préoccupant (famille)")
+    @Operation(summary = "Signaler un symptôme (femme enceinte ou conjoint)")
     public ResponseEntity<AlerteDto> declarer(Authentication authentication,
-                                               @Valid @RequestBody DeclarerSymptomeRequest request) {
-        AlerteDto dto = alerteService.declarerSymptome(authentication.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+                                              @Valid @RequestBody DeclarerSymptomeRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(alerteService.declarerSymptome(authentication.getName(), request));
     }
 
     @GetMapping("/mes-alertes")
-    @Operation(summary = "Consulter les alertes du dossier familial")
+    @Operation(summary = "Mes alertes")
     public List<AlerteDto> mesAlertes(Authentication authentication) {
         return alerteService.mesAlertes(authentication.getName());
     }
 
     @GetMapping
-    @Operation(summary = "Lister les alertes par statut (Médecin/Sage-femme/Admin)")
-    public List<AlerteDto> listerParStatut(@RequestParam String statut) {
-        return alerteService.listerParStatut(statut);
+    @Operation(summary = "Alertes par statut (NOUVELLE, PRISE_EN_CHARGE, RESOLUE)")
+    public List<AlerteDto> listerParStatut(Authentication authentication, @RequestParam String statut) {
+        return alerteService.listerParStatut(authentication.getName(), statut);
     }
 
     @GetMapping("/urgentes")
-    @Operation(summary = "Lister les alertes urgentes (Médecin/Sage-femme/Admin)")
-    public List<AlerteDto> listerUrgentes() {
-        return alerteService.listerUrgentes();
+    @Operation(summary = "Alertes urgentes non résolues")
+    public List<AlerteDto> listerUrgentes(Authentication authentication) {
+        return alerteService.listerUrgentes(authentication.getName());
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Consulter une alerte par id")
+    @Operation(summary = "Détail d'une alerte")
     public AlerteDto obtenirParId(Authentication authentication, @PathVariable Long id) {
         return alerteService.obtenirParId(authentication.getName(), id);
     }
 
     @PutMapping("/{id}/prendre-en-charge")
-    @Operation(summary = "Prendre en charge une alerte (Médecin/Sage-femme)")
+    @Operation(summary = "Prendre en charge une alerte NOUVELLE (soignant)")
     public AlerteDto prendreEnCharge(Authentication authentication, @PathVariable Long id) {
         return alerteService.prendreEnCharge(authentication.getName(), id);
     }
 
     @PutMapping("/{id}/resoudre")
-    @Operation(summary = "Résoudre/clôturer une alerte (Médecin/Sage-femme)")
-    public AlerteDto resoudre(@PathVariable Long id, @RequestBody(required = false) PriseEnChargeRequest request) {
-        PriseEnChargeRequest req = request != null ? request : new PriseEnChargeRequest();
-        return alerteService.resoudre(id, req);
+    @Operation(summary = "Résoudre une alerte prise en charge, avec observations obligatoires (soignant)")
+    public AlerteDto resoudre(Authentication authentication, @PathVariable Long id,
+                              @Valid @RequestBody PriseEnChargeRequest request) {
+        return alerteService.resoudre(authentication.getName(), id, request);
     }
 }
