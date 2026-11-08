@@ -215,7 +215,36 @@ class AlerteHelperTest {
         assertThat(alerte.getStatut()).isEqualTo(StatutAlerte.RESOLUE);
         assertThat(alerte.getNotesPriseEnCharge()).isEqualTo("Saignement minime, repos prescrit.");
         assertThat(alerte.getDateResolution()).isNotNull();
+        assertThat(alerte.getProfessionnelResolution()).isSameAs(medecin);
         verify(notificationHelper).envoyer(eq(femme), eq(grossesse), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void resoudre_parUnAutreSoignantQuiSuitLaPatiente_distingueLePreneurDuResolveur() {
+        Utilisateur sageFemme = utilisateur(60L, RoleUtilisateur.SAGE_FEMME);
+        AlerteMedicale alerte = alerte(StatutAlerte.PRISE_EN_CHARGE);
+        alerte.setProfessionnelPriseEnCharge(sageFemme);
+        when(acces.suit(medecin, grossesse)).thenReturn(true);
+        PriseEnChargeRequest request = new PriseEnChargeRequest();
+        request.setNotesPriseEnCharge("TA contrôlée, consignes remises.");
+
+        AlerteDto resultat = helper.resoudre("dr@yay360.sn", 5L, request);
+
+        assertThat(resultat.getProfessionnelNomComplet()).isEqualTo("P60 N60");
+        assertThat(resultat.getResoluParNomComplet()).isEqualTo("P50 N50");
+    }
+
+    @Test
+    void resoudre_refuseUnSoignantQuiNeSuitPasLaPatiente() {
+        AlerteMedicale alerte = alerte(StatutAlerte.PRISE_EN_CHARGE);
+        alerte.setProfessionnelPriseEnCharge(utilisateur(60L, RoleUtilisateur.SAGE_FEMME));
+        when(acces.suit(medecin, grossesse)).thenReturn(false);
+        PriseEnChargeRequest request = new PriseEnChargeRequest();
+        request.setNotesPriseEnCharge("Tentative");
+
+        assertThatThrownBy(() -> helper.resoudre("dr@yay360.sn", 5L, request))
+                .isInstanceOf(OperationNonAutoriseeException.class);
+        assertThat(alerte.getProfessionnelResolution()).isNull();
     }
 
     @Test

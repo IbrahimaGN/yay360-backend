@@ -177,6 +177,7 @@ public class AlerteHelper {
         }
 
         alerte.setStatut(StatutAlerte.RESOLUE);
+        alerte.setProfessionnelResolution(professionnel);
         alerte.setNotesPriseEnCharge(request.getNotesPriseEnCharge().trim());
         alerte.setDateResolution(LocalDateTime.now());
         AlerteMedicale miseAJour = alerteRepository.save(alerte);

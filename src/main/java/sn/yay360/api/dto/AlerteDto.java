@@ -22,7 +22,10 @@ public class AlerteDto {
     private String description;
     private String niveauGravite;
     private String statut;
+    /** Soignant qui a pris l'alerte en charge. */
     private String professionnelNomComplet;
+    /** Soignant qui a résolu l'alerte ; null si non résolue ou résolue avant l'enregistrement de cette information. */
+    private String resoluParNomComplet;
     private String notesPriseEnCharge;
     private LocalDateTime dateDeclaration;
     private LocalDateTime dateResolution;

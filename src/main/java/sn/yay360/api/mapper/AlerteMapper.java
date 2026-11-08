@@ -24,6 +24,9 @@ public class AlerteMapper {
         dto.setProfessionnelNomComplet(alerte.getProfessionnelPriseEnCharge() != null
                 ? alerte.getProfessionnelPriseEnCharge().getPrenom() + " " + alerte.getProfessionnelPriseEnCharge().getNom()
                 : null);
+        dto.setResoluParNomComplet(alerte.getProfessionnelResolution() != null
+                ? alerte.getProfessionnelResolution().getPrenom() + " " + alerte.getProfessionnelResolution().getNom()
+                : null);
         dto.setNotesPriseEnCharge(alerte.getNotesPriseEnCharge());
         dto.setDateDeclaration(alerte.getDateDeclaration());
         dto.setDateResolution(alerte.getDateResolution());
