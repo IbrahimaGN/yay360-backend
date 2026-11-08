@@ -61,6 +61,11 @@ public class AlerteMedicale {
     @JoinColumn(name = "professionnel_id")
     private Utilisateur professionnelPriseEnCharge;
 
+    /** Soignant qui a résolu l'alerte (peut différer de celui qui l'a prise en charge). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolu_par_id")
+    private Utilisateur professionnelResolution;
+
     @Column(name = "notes_prise_en_charge", columnDefinition = "TEXT")
     private String notesPriseEnCharge;
 

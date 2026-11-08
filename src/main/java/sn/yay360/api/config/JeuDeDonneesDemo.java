@@ -548,6 +548,7 @@ public class JeuDeDonneesDemo {
             }
             if (StatutAlerte.RESOLUE.equals(s.statut())) {
                 alerte.setDateResolution(date.plusHours(6));
+                alerte.setProfessionnelResolution(alerte.getProfessionnelPriseEnCharge());
                 alerte.setNotesPriseEnCharge("Situation contrôlée lors de l'examen, consignes remises à la patiente. " + MENTION);
             }
             AlerteMedicale enregistree = alerteMedicaleRepository.saveAndFlush(alerte);
