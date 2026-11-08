@@ -82,7 +82,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        # info : version déployée uniquement (aucune donnée sensible), vérifiée par la CD après chaque déploiement
+        include: health,info
+  info:
+    env:
+      enabled: true
   endpoint:
     health:
       show-details: never
@@ -90,6 +94,11 @@ management:
     # L'email est facultatif : un SMTP absent ne doit pas rendre l'API « DOWN »
     mail:
       enabled: false
+
+# Version déployée, lue depuis l'image Docker (ARG VERSION) ; « dev » en local
+info:
+  app:
+    version: ${YAY360_VERSION:dev}
 
 springdoc:
   api-docs:

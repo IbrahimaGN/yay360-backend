@@ -26,6 +26,12 @@ RUN groupadd -r yay360 && useradd -r -g yay360 yay360
 
 COPY --from=build /app/target/*.jar app.jar
 
+# Version déployée (SHA du commit, fourni par la CD) : exposée sur /actuator/info pour la traçabilité
+ARG VERSION=dev
+ENV YAY360_VERSION=${VERSION}
+LABEL org.opencontainers.image.source="https://github.com/IbrahimaGN/yay360-backend" \
+      org.opencontainers.image.revision="${VERSION}"
+
 RUN chown -R yay360:yay360 /app
 USER yay360
 

@@ -52,7 +52,9 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/api-docs/**",
             "/v3/api-docs/**",
-            "/actuator/health"
+            "/actuator/health",
+            // Version déployée (SHA du commit) : lue par la CD pour vérifier le déploiement
+            "/actuator/info"
     };
 
     @Bean
