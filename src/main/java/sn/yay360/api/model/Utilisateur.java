@@ -89,6 +89,22 @@ public class Utilisateur {
     @Column(name = "verrouille_jusqua")
     private LocalDateTime verrouilleJusqua;
 
+    // ---- Connexion mobile par PIN (téléphone + PIN à 4 chiffres) ----
+
+    /** PIN haché (BCrypt) ; null tant qu'il n'a pas été défini après vérification du téléphone. */
+    @Column(name = "pin", length = 100)
+    private String pin;
+
+    @Column(name = "pin_echecs", nullable = false)
+    private Integer pinEchecs = 0;
+
+    @Column(name = "pin_verrouille_jusqua")
+    private LocalDateTime pinVerrouilleJusqua;
+
+    /** Verrouillages successifs : au-delà du seuil, le PIN est effacé et un nouveau code est exigé. */
+    @Column(name = "pin_verrouillages", nullable = false)
+    private Integer pinVerrouillages = 0;
+
     @PrePersist
     protected void onCreate() {
         this.dateCreation = LocalDateTime.now();

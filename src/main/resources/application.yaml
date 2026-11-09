@@ -64,6 +64,9 @@ yay360:
   frontend-url: ${YAY360_FRONTEND_URL:http://localhost:4200}
   mail:
     from: ${YAY360_MAIL_FROM:no-reply@yay360.sn}
+    # Envoi par l'API HTTPS de Brevo (prioritaire sur SMTP) : fonctionne sur Render gratuit, où SMTP est bloqué.
+    brevo-api-key: ${BREVO_API_KEY:}
+    expediteur-nom: ${YAY360_MAIL_EXPEDITEUR_NOM:YAY360}
     # DÉVELOPPEMENT UNIQUEMENT : sans SMTP, écrit les liens (reset, invitation) dans les logs.
     journaliser-liens: ${YAY360_MAIL_JOURNALISER_LIENS:false}
   securite:
@@ -77,6 +80,17 @@ yay360:
   demo-data:
     enabled: ${YAY360_DEMO_DATA_ENABLED:false}
     password: ${YAY360_DEMO_PASSWORD:}
+  # Connexion mobile (téléphone, code par e-mail, PIN à 4 chiffres). Valeurs par défaut issues des recommandations OWASP.
+  mobile:
+    code-duree-minutes: ${YAY360_MOBILE_CODE_DUREE_MINUTES:10}
+    code-essais-max: 5
+    code-delai-renvoi-secondes: 60
+    codes-max-par-heure: 5
+    jeton-pin-minutes: 10
+    pin-echecs-max: 5
+    pin-verrouillage-minutes: 15
+    pin-verrouillages-avant-code: 3
+    session-jours: ${YAY360_MOBILE_SESSION_JOURS:30}
   regles:
     complementaires:
       # Règles sur la FC maternelle, la protéinurie et la glycosurie (seuils ISSHP, NICE NG3, MEOWS).

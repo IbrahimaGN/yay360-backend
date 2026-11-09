@@ -56,6 +56,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, "Échec de l'authentification", "Email ou mot de passe incorrect", request, null);
     }
 
+    @ExceptionHandler(TropDeDemandesException.class)
+    public ResponseEntity<ErrorResponse> handleTropDeDemandes(TropDeDemandesException ex, HttpServletRequest request) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, "Trop de demandes", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "Accès refusé", "Vous n'avez pas les droits nécessaires pour cette opération", request, null);

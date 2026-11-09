@@ -34,6 +34,9 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     List<Utilisateur> findByTelephoneAndRole(String telephone, String role);
 
+    /** Comptes mobiles (patiente, conjoint) associés à un numéro, pour la connexion par PIN. */
+    List<Utilisateur> findByTelephoneAndRoleIn(String telephone, java.util.Collection<String> roles);
+
     List<Utilisateur> findByRoleInAndActifTrue(List<String> roles);
 
     /** Soignants actifs qui suivent une grossesse (établissement de suivi ou lien de soin direct). */
