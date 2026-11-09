@@ -252,4 +252,38 @@ class SecuriteIntegrationIT {
         mvc.perform(put("/alertes/" + alerte + "/prendre-en-charge").header("Authorization", bearer(medecin)))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void connexionMobile_routesPubliquesEtCodeEnregistreEnBase() throws Exception {
+        String telephone = "+22178" + SUFFIXE.substring(SUFFIXE.length() - 7);
+        // Numéro inconnu : inscription demandée, sans jeton
+        mvc.perform(post("/auth/mobile/demarrer").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telephone\":\"" + telephone + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.etape").value("INSCRIPTION"));
+        // Inscription : code créé en base (table codes_verification, migration V7), email masqué
+        mvc.perform(post("/auth/mobile/inscription").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nom":"Sarr","prenom":"Khady","email":"khady.mobile.%s@exemple.sn",
+                         "telephone":"%s","dateNaissance":"1997-04-12"}""".formatted(SUFFIXE, telephone)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.etape").value("CODE_ENVOYE"))
+                .andExpect(jsonPath("$.emailMasque").value(org.hamcrest.Matchers.startsWith("k")));
+        // Renvoi immédiat refusé (429)
+        mvc.perform(post("/auth/mobile/inscription").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"nom":"Sarr","prenom":"Khady","email":"khady.mobile.%s@exemple.sn",
+                         "telephone":"%s","dateNaissance":"1997-04-12"}""".formatted(SUFFIXE, telephone)))
+                .andExpect(status().isTooManyRequests());
+        // Mauvais code : 401 avec le nombre d'essais restants
+        mvc.perform(post("/auth/mobile/verifier-code").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telephone\":\"" + telephone + "\",\"code\":\"000000\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Essais restants")));
+        // PIN sans compte : refus générique ; jeton de session inconnu : 401
+        mvc.perform(post("/auth/mobile/connexion").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telephone\":\"" + telephone + "\",\"pin\":\"2580\"}"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/auth/mobile/rafraichir").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"jetonRafraichissement\":\"inconnu\"}"))
+                .andExpect(status().isUnauthorized());
+    }
 }

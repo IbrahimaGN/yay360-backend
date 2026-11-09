@@ -44,6 +44,7 @@ services:
       YAY360_SWAGGER_ENABLED: ${YAY360_SWAGGER_ENABLED:-false}
       YAY360_REGLES_COMPLEMENTAIRES_ACTIVES: ${YAY360_REGLES_COMPLEMENTAIRES_ACTIVES:-true}
       # Emails (facultatif) : sans SMTP_HOST, aucun email n'est envoyé
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}

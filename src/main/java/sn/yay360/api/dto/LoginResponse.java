@@ -19,4 +19,6 @@ public class LoginResponse {
     private String role;
     /** true si le mot de passe a été généré par un administrateur et doit être changé. */
     private boolean motDePasseTemporaire;
+    /** Session mobile longue (« rester connecté ») ; null sinon. À conserver dans le stockage sécurisé. */
+    private String jetonRafraichissement;
 }

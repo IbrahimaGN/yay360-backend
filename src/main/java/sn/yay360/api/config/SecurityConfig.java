@@ -42,6 +42,8 @@ public class SecurityConfig {
     /** Seuls les endpoints réellement anonymes sont publics (pas /auth/change-password). */
     private static final String[] ENDPOINTS_PUBLICS = {
             "/auth/register",
+            // Connexion mobile : téléphone, code, PIN, session longue (utilisateur pas encore authentifié)
+            "/auth/mobile/**",
             "/auth/login",
             "/auth/logout",
             "/auth/forgot-password",
