@@ -26,6 +26,20 @@ public class GrossesseController {
     private final CalendrierService calendrierService;
     private final SuiviService suiviService;
     private final IntelligenceCliniqueService intelligenceCliniqueService;
+    private final sn.yay360.api.service.ExportDossierService exportDossierService;
+
+    /** Réponse PDF en téléchargement : données de santé, jamais mises en cache. */
+    private static org.springframework.http.ResponseEntity<byte[]> pdf(byte[] contenu, String nom) {
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nom + "\"")
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(contenu);
+    }
+
+    private static String nomFichier(String suffixe) {
+        return "yay360-dossier-grossesse-" + suffixe + "-" + java.time.LocalDate.now() + ".pdf";
+    }
 
     // ==================== PATIENTE / CONJOINT ====================
 
@@ -47,6 +61,12 @@ public class GrossesseController {
     public GrossesseDto choisirEtablissement(Authentication authentication,
                                              @Valid @RequestBody ChoisirEtablissementRequest request) {
         return grossesseService.choisirEtablissement(authentication.getName(), request);
+    }
+
+    @GetMapping("/ma-grossesse/export-pdf")
+    @Operation(summary = "Export PDF du dossier de la grossesse en cours (patiente)")
+    public org.springframework.http.ResponseEntity<byte[]> exporterMaGrossesse(Authentication authentication) {
+        return pdf(exportDossierService.exporterMaGrossesse(authentication.getName()), nomFichier("en-cours"));
     }
 
     @GetMapping("/mon-historique")
@@ -112,6 +132,12 @@ public class GrossesseController {
     @Operation(summary = "Suivi hebdomadaire d'une grossesse")
     public SuiviHebdomadaireDto obtenirSuivi(Authentication authentication, @PathVariable Long id) {
         return suiviService.obtenirSuiviParId(authentication.getName(), id);
+    }
+
+    @GetMapping("/{id}/export-pdf")
+    @Operation(summary = "Export PDF du dossier d'une grossesse (soignant qui suit la patiente)")
+    public org.springframework.http.ResponseEntity<byte[]> exporterParId(Authentication authentication, @PathVariable Long id) {
+        return pdf(exportDossierService.exporterParId(authentication.getName(), id), nomFichier(String.valueOf(id)));
     }
 
     @GetMapping("/{id}/plan-cpn")

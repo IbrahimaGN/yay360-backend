@@ -286,4 +286,25 @@ class SecuriteIntegrationIT {
                         .content("{\"jetonRafraichissement\":\"inconnu\"}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void exportPdfDuDossier_reserveALaPatienteEtAuxSoignantsQuiLaSuivent() throws Exception {
+        String patiente = inscrirePatiente("pdf");
+        long grossesse = declarerGrossesse(patiente);
+        MvcResult r = mvc.perform(get("/grossesses/ma-grossesse/export-pdf").header("Authorization", bearer(patiente)))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .contentType(MediaType.APPLICATION_PDF))
+                .andReturn();
+        assertThat(new String(r.getResponse().getContentAsByteArray(), 0, 5)).isEqualTo("%PDF-");
+        assertThat(r.getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
+
+        mvc.perform(get("/grossesses/ma-grossesse/export-pdf")).andExpect(status().isUnauthorized());
+        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
+        mvc.perform(get("/grossesses/" + grossesse + "/export-pdf").header("Authorization", bearer(admin)))
+                .andExpect(status().isForbidden());
+        String medecin = creerProfessionnel("MEDECIN", "pdf");
+        mvc.perform(get("/grossesses/" + grossesse + "/export-pdf").header("Authorization", bearer(medecin)))
+                .andExpect(status().isForbidden());
+    }
 }
