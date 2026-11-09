@@ -18,7 +18,12 @@ public class GrossesseDto {
     private Long femmeEnceinteId;
     private String femmeEnceinteNomComplet;
     private LocalDate dateDernieresRegles;
+    /** Estimation (règle de Naegele : dernières règles + 280 jours), pas une date certaine. */
     private LocalDate datePrevueAccouchement;
+    /** Période d'accouchement à terme : 37 SA + 0 j … */
+    private LocalDate debutPeriodeTerme;
+    /** … à 41 SA + 6 j. */
+    private LocalDate finPeriodeTerme;
 
     // --- Champs calculés dynamiquement (jamais stockés) ---
     private Integer ageGestationnelJours;
