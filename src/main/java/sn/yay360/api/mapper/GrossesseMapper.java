@@ -1,6 +1,7 @@
 package sn.yay360.api.mapper;
 
 import sn.yay360.api.dto.GrossesseDto;
+import sn.yay360.api.helper.CalculObstetricalHelper;
 import sn.yay360.api.model.Grossesse;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,8 @@ public class GrossesseMapper {
         dto.setFemmeEnceinteNomComplet(grossesse.getFemmeEnceinte().getPrenom() + " " + grossesse.getFemmeEnceinte().getNom());
         dto.setDateDernieresRegles(grossesse.getDateDernieresRegles());
         dto.setDatePrevueAccouchement(grossesse.getDatePrevueAccouchement());
+        dto.setDebutPeriodeTerme(CalculObstetricalHelper.debutPeriodeTerme(grossesse.getDateDernieresRegles()));
+        dto.setFinPeriodeTerme(CalculObstetricalHelper.finPeriodeTerme(grossesse.getDateDernieresRegles()));
         dto.setAgeGestationnelJours(ageGestationnelJours);
         dto.setSemaineActuelle(semaineActuelle);
         dto.setTrimestre(trimestre);
@@ -29,6 +32,7 @@ public class GrossesseMapper {
             dto.setEtablissementSuiviNom(grossesse.getEtablissementSuivi().getNom());
         }
         dto.setDateFin(grossesse.getDateFin());
+        dto.setIssue(grossesse.getIssue());
         dto.setDateCreation(grossesse.getDateCreation());
         return dto;
     }

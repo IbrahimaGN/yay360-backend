@@ -64,4 +64,19 @@ class CalculObstetricalHelperTest {
         int joursRestants = calcul.calculerJoursRestants(dpaFuture);
         assertThat(joursRestants).isEqualTo(30);
     }
+
+    @Test
+    void periodeATerme_de37SA0jA41SA6j_autourDuTermeEstime() {
+        LocalDate ddr = LocalDate.of(2026, 5, 25);
+
+        assertThat(calcul.calculerDatePrevueAccouchement(ddr)).isEqualTo(LocalDate.of(2027, 3, 1));
+        assertThat(CalculObstetricalHelper.debutPeriodeTerme(ddr)).isEqualTo(LocalDate.of(2027, 2, 8));  // + 259 j
+        assertThat(CalculObstetricalHelper.finPeriodeTerme(ddr)).isEqualTo(LocalDate.of(2027, 3, 14));  // + 293 j
+    }
+
+    @Test
+    void periodeATerme_absenteSansDateDesDernieresRegles() {
+        assertThat(CalculObstetricalHelper.debutPeriodeTerme(null)).isNull();
+        assertThat(CalculObstetricalHelper.finPeriodeTerme(null)).isNull();
+    }
 }

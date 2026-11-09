@@ -9,9 +9,10 @@ import lombok.Setter;
 @Setter
 public class TerminerGrossesseRequest {
 
-    @NotBlank(message = "Le statut final est obligatoire")
-    @Pattern(regexp = "TERMINEE|INTERROMPUE", message = "Statut invalide")
-    private String statut;
+    /** Issue de la grossesse ; le statut final (TERMINEE ou INTERROMPUE) en est déduit. */
+    @NotBlank(message = "L'issue de la grossesse est obligatoire")
+    @Pattern(regexp = sn.yay360.api.model.IssueGrossesse.MOTIF, message = "Issue de grossesse inconnue")
+    private String issue;
 
     /** Date de l'accouchement ou de l'interruption (par défaut : aujourd'hui). */
     @jakarta.validation.constraints.PastOrPresent(message = "La date de fin ne peut pas être dans le futur")
