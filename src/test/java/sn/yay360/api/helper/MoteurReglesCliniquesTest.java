@@ -296,52 +296,79 @@ class MoteurReglesCliniquesTest {
     @Nested
     class ConstantesComplementaires {
 
-        private List<SignalClinique> analyser(int semaine, String ta, Integer fc, String proteinurie, String glycosurie) {
-            return moteur.analyserConstantesComplementaires(semaine, ta, fc, proteinurie, glycosurie);
+        private List<SignalClinique> analyser(int semaine, String ta, Integer fc, String proteinurie,
+                                              String glycosurie, long glycosuriesAnterieures) {
+            return moteur.analyserConstantesComplementaires(semaine, ta, fc, proteinurie, glycosurie,
+                    glycosuriesAnterieures);
+        }
+
+        private List<String> codes(List<SignalClinique> signaux) {
+            return signaux.stream().map(SignalClinique::code).toList();
         }
 
         @Test
-        void desactiveesParDefaut_aucunSignalTantQueLesSeuilsNeSontPasValides() {
-            assertThat(moteur.reglesComplementairesActives()).isFalse();
-            assertThat(analyser(30, "150/95", 130, "TROIS_CROIX", "TROIS_CROIX")).isEmpty();
+        void activesParDefaut_maisDesactivablesParConfiguration() {
+            assertThat(moteur.reglesComplementairesActives()).isTrue();
+
+            moteur.activerReglesComplementaires(false);
+
+            assertThat(analyser(30, "150/95", 130, "TROIS_CROIX", "TROIS_CROIX", 3)).isEmpty();
         }
 
         @Test
-        void hypertensionEtProteinurieApres20SA_suspicionDePreeclampsieUrgente() {
-            moteur.activerReglesComplementaires(true);
+        void isshp_hypertensionEtProteinurieDeuxCroixApres20SA_suspicionDePreeclampsieUrgente() {
+            List<SignalClinique> signaux = analyser(28, "145/92", null, "DEUX_CROIX", null, 0);
 
-            List<SignalClinique> signaux = analyser(28, "145/92", null, "UNE_CROIX", null);
-
-            assertThat(signaux).extracting(SignalClinique::code).containsExactly("PREECLAMPSIE_SUSPECTEE");
+            assertThat(codes(signaux)).containsExactly("PREECLAMPSIE_SUSPECTEE");
             assertThat(signaux.get(0).niveau()).isEqualTo(NiveauGravite.URGENT);
-            assertThat(signaux.get(0).message()).contains("protéinurie +").contains("28 SA");
+            assertThat(signaux.get(0).message()).contains("protéinurie ++").contains("28 SA").contains("ISSHP");
         }
 
         @Test
-        void avant20SA_laProteinurieSeuleCompteSelonSonIntensite() {
-            moteur.activerReglesComplementaires(true);
+        void isshp_uneSeuleCroixAvecHypertension_proteinurieAQuantifierSansConclure() {
+            List<SignalClinique> signaux = analyser(28, "145/92", null, "UNE_CROIX", null, 0);
 
-            assertThat(analyser(16, "145/92", null, "UNE_CROIX", null)).isEmpty();
-            assertThat(analyser(16, "120/80", null, "DEUX_CROIX", null))
+            assertThat(codes(signaux)).containsExactly("PROTEINURIE_A_QUANTIFIER");
+            assertThat(signaux.get(0).niveau()).isEqualTo(NiveauGravite.ELEVE);
+        }
+
+        @Test
+        void avant20SA_pasDeSuspicionDePreeclampsie_laProteinurieForteResteASurveiller() {
+            assertThat(analyser(16, "145/92", null, "UNE_CROIX", null, 0)).isEmpty();
+            assertThat(analyser(16, "145/92", null, "DEUX_CROIX", null, 0))
                     .extracting(SignalClinique::code, SignalClinique::niveau)
-                    .containsExactly(org.assertj.core.groups.Tuple.tuple("PROTEINURIE", NiveauGravite.ELEVE));
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("PROTEINURIE", NiveauGravite.MODERE));
         }
 
         @Test
         void tracesEtNegatif_nAlertentPas() {
-            moteur.activerReglesComplementaires(true);
-
-            assertThat(analyser(30, "120/80", 80, "TRACES", "NEGATIVE")).isEmpty();
+            assertThat(analyser(30, "150/95", 80, "TRACES", "TRACES", 2)).isEmpty();
+            assertThat(analyser(30, "120/80", 80, "NEGATIVE", "NEGATIVE", 0)).isEmpty();
         }
 
         @Test
-        void glycosurieEtTachycardie_signauxModeres() {
-            moteur.activerReglesComplementaires(true);
+        void niceNg3_glycosurieDeuxCroixUneFois_ouUneCroixRepetee() {
+            assertThat(codes(analyser(30, null, null, null, "DEUX_CROIX", 0))).containsExactly("GLYCOSURIE");
+            assertThat(analyser(30, null, null, null, "UNE_CROIX", 0)).isEmpty();
+            List<SignalClinique> repetee = analyser(30, null, null, null, "UNE_CROIX", 1);
+            assertThat(codes(repetee)).containsExactly("GLYCOSURIE");
+            assertThat(repetee.get(0).message()).contains("déjà positive").contains("NICE NG3");
+        }
 
-            assertThat(analyser(30, "120/80", 112, "NEGATIVE", "UNE_CROIX"))
-                    .extracting(SignalClinique::code)
-                    .containsExactly("GLYCOSURIE", "TACHYCARDIE_MATERNELLE");
-            assertThat(analyser(30, "120/80", 100, null, null)).isEmpty();
+        @Test
+        void meows_bandesJauneEtRougeDeLaFrequenceCardiaqueMaternelle() {
+            assertThat(analyser(30, null, 100, null, null, 0)).isEmpty();
+            assertThat(analyser(30, null, 50, null, null, 0)).isEmpty();
+            assertThat(analyser(30, null, 101, null, null, 0))
+                    .extracting(SignalClinique::code, SignalClinique::niveau)
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("FC_MATERNELLE_LIMITE", NiveauGravite.MODERE));
+            assertThat(analyser(30, null, 45, null, null, 0))
+                    .extracting(SignalClinique::niveau).containsExactly(NiveauGravite.MODERE);
+            assertThat(analyser(30, null, 121, null, null, 0))
+                    .extracting(SignalClinique::code, SignalClinique::niveau)
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("FC_MATERNELLE_ANORMALE", NiveauGravite.ELEVE));
+            assertThat(analyser(30, null, 38, null, null, 0))
+                    .extracting(SignalClinique::niveau).containsExactly(NiveauGravite.ELEVE);
         }
     }
 }

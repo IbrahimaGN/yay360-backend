@@ -139,16 +139,17 @@ public class MoteurReglesCliniques {
         return signaux;
     }
 
-    // ==================== 1 bis. CONSTANTES COMPLÉMENTAIRES (EN ATTENTE DE VALIDATION) ====================
+    // ==================== 1 bis. CONSTANTES COMPLÉMENTAIRES ====================
 
     /**
-     * Règles sur les constantes demandées par la sage-femme interrogée : fréquence cardiaque maternelle,
-     * protéinurie et glycosurie. Leurs seuils doivent être validés par un professionnel de santé avant
-     * activation : tant que {@code yay360.regles.complementaires.actives} vaut false, aucune n'est appliquée
-     * (les valeurs sont seulement enregistrées et affichées).
+     * Règles sur les constantes demandées par la sage-femme interrogée (fréquence cardiaque maternelle,
+     * protéinurie, glycosurie). Leurs seuils reprennent des recommandations publiées (voir
+     * {@link #analyserConstantesComplementaires}). Elles peuvent être coupées par configuration
+     * ({@code yay360.regles.complementaires.actives=false}) si un protocole local les contredit :
+     * les valeurs sont alors seulement enregistrées et affichées.
      */
-    @Value("${yay360.regles.complementaires.actives:false}")
-    private boolean reglesComplementairesActives;
+    @Value("${yay360.regles.complementaires.actives:true}")
+    private boolean reglesComplementairesActives = true;
 
     void activerReglesComplementaires(boolean actives) {
         this.reglesComplementairesActives = actives;
@@ -159,42 +160,76 @@ public class MoteurReglesCliniques {
     }
 
     /**
-     * Seuils proposés (à valider) :
+     * Seuils et sources :
      * <ul>
-     *   <li>après 20 SA, PA ≥ 140/90 et protéinurie ≥ + : suspicion de prééclampsie (URGENT) ;</li>
-     *   <li>protéinurie ≥ ++ sans hypertension : ÉLEVÉ ;</li>
-     *   <li>glycosurie ≥ + : contrôler la glycémie, diabète gestationnel ? (MODÉRÉ) ;</li>
-     *   <li>fréquence cardiaque maternelle &gt; 100/min : tachycardie (MODÉRÉ).</li>
+     *   <li><b>Prééclampsie suspectée (URGENT)</b> : hypertension ≥ 140/90 mmHg à partir de 20 SA et
+     *       protéinurie ≥ ++ à la bandelette (ISSHP ; ++ est le seuil retenu pour la bandelette quand le
+     *       rapport protéines/créatinine n'est pas disponible).</li>
+     *   <li><b>Protéinurie + avec hypertension à partir de 20 SA (ÉLEVÉ)</b> : une croix ne suffit pas à
+     *       conclure ; quantification recommandée (rapport protéines/créatinine).</li>
+     *   <li><b>Protéinurie ≥ ++ sans hypertension (MODÉRÉ)</b> : protéinurie significative à quantifier,
+     *       surveillance de la pression artérielle.</li>
+     *   <li><b>Glycosurie (MODÉRÉ)</b> : ≥ ++ une fois, ou ≥ + à deux consultations ou plus : test de
+     *       dépistage du diabète gestationnel (NICE NG3). La bandelette ne dépiste pas elle-même le diabète
+     *       gestationnel.</li>
+     *   <li><b>Fréquence cardiaque maternelle</b> (bandes du score MEOWS recommandé par la CEMACH) :
+     *       &gt; 120 ou &lt; 40/min : ÉLEVÉ ; 101 à 120 ou 40 à 49/min : MODÉRÉ.</li>
      * </ul>
+     *
+     * @param glycosuriesPositivesAnterieures consultations précédentes de la grossesse avec glycosurie ≥ +
      */
     public List<SignalClinique> analyserConstantesComplementaires(int semaine, String tensionArterielle,
                                                                   Integer frequenceCardiaqueMaternelle,
-                                                                  String proteinurie, String glycosurie) {
+                                                                  String proteinurie, String glycosurie,
+                                                                  long glycosuriesPositivesAnterieures) {
         List<SignalClinique> signaux = new ArrayList<>();
         if (!reglesComplementairesActives) {
             return signaux;
         }
         int[] pa = lireTension(tensionArterielle);
-        boolean hypertension = pa != null && (pa[0] >= 140 || pa[1] >= 90);
-        if (hypertension && semaine >= 20 && ResultatBandelette.auMoins(proteinurie, ResultatBandelette.UNE_CROIX)) {
+        boolean hypertensionApres20SA = pa != null && (pa[0] >= 140 || pa[1] >= 90) && semaine >= 20;
+        String prot = ResultatBandelette.libelle(proteinurie);
+
+        if (hypertensionApres20SA && ResultatBandelette.auMoins(proteinurie, ResultatBandelette.DEUX_CROIX)) {
             signaux.add(new SignalClinique("PREECLAMPSIE_SUSPECTEE", NiveauGravite.URGENT,
-                    "Pression artérielle " + tensionArterielle + " mmHg ≥ 140/90 et protéinurie "
-                            + ResultatBandelette.libelle(proteinurie) + " après 20 SA (" + semaine
-                            + " SA) : suspicion de prééclampsie. Évaluation médicale immédiate."));
+                    "Pression artérielle " + tensionArterielle + " mmHg ≥ 140/90 et protéinurie " + prot
+                            + " à " + semaine + " SA : suspicion de prééclampsie (critères ISSHP). "
+                            + "Évaluation médicale immédiate."));
+        } else if (hypertensionApres20SA && ResultatBandelette.auMoins(proteinurie, ResultatBandelette.UNE_CROIX)) {
+            signaux.add(new SignalClinique("PROTEINURIE_A_QUANTIFIER", NiveauGravite.ELEVE,
+                    "Pression artérielle " + tensionArterielle + " mmHg ≥ 140/90 et protéinurie " + prot
+                            + " à " + semaine + " SA : quantifier la protéinurie (rapport protéines/créatinine) "
+                            + "pour confirmer ou écarter une prééclampsie."));
         } else if (ResultatBandelette.auMoins(proteinurie, ResultatBandelette.DEUX_CROIX)) {
-            signaux.add(new SignalClinique("PROTEINURIE", NiveauGravite.ELEVE,
-                    "Protéinurie " + ResultatBandelette.libelle(proteinurie)
-                            + " à la bandelette : contrôler la pression artérielle et rechercher une atteinte rénale."));
+            signaux.add(new SignalClinique("PROTEINURIE", NiveauGravite.MODERE,
+                    "Protéinurie " + prot + " à la bandelette sans hypertension : quantifier la protéinurie "
+                            + "et surveiller la pression artérielle."));
         }
-        if (ResultatBandelette.auMoins(glycosurie, ResultatBandelette.UNE_CROIX)) {
+
+        boolean glycosurieForte = ResultatBandelette.auMoins(glycosurie, ResultatBandelette.DEUX_CROIX);
+        boolean glycosurieRepetee = ResultatBandelette.auMoins(glycosurie, ResultatBandelette.UNE_CROIX)
+                && glycosuriesPositivesAnterieures >= 1;
+        if (glycosurieForte || glycosurieRepetee) {
             signaux.add(new SignalClinique("GLYCOSURIE", NiveauGravite.MODERE,
                     "Glycosurie " + ResultatBandelette.libelle(glycosurie)
-                            + " à la bandelette : contrôler la glycémie (diabète gestationnel ?)."));
+                            + (glycosurieForte ? "" : ", déjà positive à " + glycosuriesPositivesAnterieures
+                                    + " consultation(s) précédente(s)")
+                            + " : proposer un test de dépistage du diabète gestationnel (NICE NG3)."));
         }
-        if (frequenceCardiaqueMaternelle != null && frequenceCardiaqueMaternelle > 100) {
-            signaux.add(new SignalClinique("TACHYCARDIE_MATERNELLE", NiveauGravite.MODERE,
-                    "Fréquence cardiaque maternelle " + frequenceCardiaqueMaternelle
-                            + "/min > 100/min : tachycardie, rechercher fièvre, anémie ou déshydratation."));
+
+        if (frequenceCardiaqueMaternelle != null) {
+            int fc = frequenceCardiaqueMaternelle;
+            if (fc > 120 || fc < 40) {
+                signaux.add(new SignalClinique("FC_MATERNELLE_ANORMALE", NiveauGravite.ELEVE,
+                        "Fréquence cardiaque maternelle " + fc + "/min " + (fc > 120 ? "> 120" : "< 40")
+                                + "/min (seuil rouge MEOWS) : examen clinique rapide (hémorragie, infection, "
+                                + "trouble du rythme ?)."));
+            } else if (fc > 100 || fc < 50) {
+                signaux.add(new SignalClinique("FC_MATERNELLE_LIMITE", NiveauGravite.MODERE,
+                        "Fréquence cardiaque maternelle " + fc + "/min "
+                                + (fc > 100 ? "entre 101 et 120" : "entre 40 et 49")
+                                + "/min (seuil jaune MEOWS) : recontrôler et rechercher fièvre, anémie ou déshydratation."));
+            }
         }
         return signaux;
     }

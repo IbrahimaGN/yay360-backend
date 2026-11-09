@@ -225,19 +225,23 @@ class RendezVousEtConsultationTest {
     }
 
     @Test
-    void consultation_enregistreLesConstantesComplementairesSansAlerteTantQueLesReglesSontInactives() {
+    void consultation_enregistreLesConstantesComplementairesEtLesAnalyse() {
         EnregistrerConsultationRequest request = consultation(null);
         request.setFrequenceCardiaqueMaternelle(118);
-        request.setProteinurie("DEUX_CROIX");
+        request.setProteinurie("NEGATIVE");
         request.setGlycosurie("UNE_CROIX");
+        // Glycosurie déjà positive à une consultation précédente : règle NICE NG3 (≥ + répétée)
+        when(consultationRepository.countByGrossesseIdAndGlycosurieIn(eq(grossesse.getId()), any())).thenReturn(1L);
 
         ConsultationDto dto = consultationHelper.enregistrer("dr@yay360.sn", request);
 
         assertThat(dto.getFrequenceCardiaqueMaternelle()).isEqualTo(118);
-        assertThat(dto.getProteinurie()).isEqualTo("DEUX_CROIX");
+        assertThat(dto.getProteinurie()).isEqualTo("NEGATIVE");
         assertThat(dto.getGlycosurie()).isEqualTo("UNE_CROIX");
-        assertThat(dto.getSignauxCliniques()).isEmpty();
-        verify(alerteRepository, never()).save(any());
+        assertThat(dto.getSignauxCliniques()).hasSize(2)
+                .anySatisfy(sig -> assertThat(sig).contains("diabète gestationnel"))
+                .anySatisfy(sig -> assertThat(sig).contains("118/min"));
+        verify(alerteRepository).save(argThat((AlerteMedicale a) -> NiveauGravite.MODERE.equals(a.getNiveauGravite())));
     }
 
     @Test
