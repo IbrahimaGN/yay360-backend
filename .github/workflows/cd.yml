@@ -1,0 +1,147 @@
+# Livraison continue de l'API YAY360 : GHCR (artefact versionné) puis Render (production).
+#
+# Déclenchement : uniquement après une exécution RÉUSSIE de « CI backend » sur main.
+# Validation humaine : le job de déploiement utilise l'environnement GitHub « production »,
+# configuré avec un validateur obligatoire. Rien n'est déployé sans ce clic.
+# Retour arrière : lancer ce workflow à la main (« Run workflow ») avec le SHA d'une version précédente.
+#
+# Secrets et variables (Settings → Environments → production) :
+#   secret   RENDER_DEPLOY_HOOK_URL   URL du « Deploy Hook » du service Render (contient une clé)
+#   variable API_URL                  URL publique de l'API, ex. https://yay360-api.onrender.com
+
+name: CD backend
+
+on:
+  workflow_run:
+    workflows: ["CI backend"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "SHA complet d'une image déjà publiée à redéployer (retour arrière)"
+        required: true
+
+permissions:
+  contents: read
+
+# Jamais deux déploiements en même temps ; un déploiement en cours n'est pas annulé.
+concurrency:
+  group: cd-production-backend
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/ibrahimagn/yay360-api
+
+jobs:
+  publier-image:
+    name: Publier l'image sur GHCR
+    # Seulement si la CI a réussi sur un push dans main (pas pour un retour arrière manuel)
+    if: >-
+      github.event_name == 'workflow_run'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.sha }}
+    steps:
+      # Exactement le commit validé par la CI
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - id: version
+        run: echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Une image par commit (tag = SHA) : c'est cette image précise qui sera promue en production.
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          push: true
+          build-args: VERSION=${{ steps.version.outputs.sha }}
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.version.outputs.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deployer-production:
+    name: Déployer en production (Render)
+    needs: publier-image
+    # Tourne après publier-image, ou seul pour un retour arrière manuel
+    if: >-
+      always()
+      && (needs.publier-image.result == 'success'
+          || (github.event_name == 'workflow_dispatch' && needs.publier-image.result == 'skipped'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.API_URL }}/actuator/info
+    env:
+      VERSION: ${{ needs.publier-image.outputs.version || inputs.version }}
+    steps:
+      - name: Vérifier la version demandée
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Version invalide : un SHA complet de 40 caractères est attendu."
+            exit 1
+          fi
+          echo "Image à déployer : $IMAGE:$VERSION"
+
+      # La clé du hook est un secret : elle n'apparaît pas dans les journaux (masquée par GitHub).
+      - name: Demander le déploiement à Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          image=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$IMAGE:$VERSION")
+          curl -fsS -X POST "${HOOK}&imgURL=${image}" -o /dev/null
+          echo "Déploiement demandé à Render."
+
+      # Render gratuit : téléchargement de l'image puis démarrage lent (0,1 CPU). On attend jusqu'à 15 min.
+      - name: Vérifier la version en ligne
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          for i in $(seq 1 90); do
+            enLigne=$(curl -fsS --max-time 20 "$API_URL/actuator/info" 2>/dev/null \
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['app']['version'])" 2>/dev/null || true)
+            if [ "$enLigne" = "$VERSION" ]; then
+              echo "Version en ligne : $enLigne"
+              exit 0
+            fi
+            echo "Tentative $i : version en ligne « ${enLigne:-indisponible} », attendue $VERSION"
+            sleep 10
+          done
+          echo "::error::La nouvelle version n'est pas en ligne après 15 minutes."
+          exit 1
+
+      - name: Tests après déploiement
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          set -e
+          sante=$(curl -fsS "$API_URL/actuator/health")
+          echo "Santé : $sante"
+          echo "$sante" | grep -q '"UP"'
+          # Une route protégée doit refuser un appel sans jeton
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/grossesses/ma-grossesse")
+          echo "Route protégée sans jeton : HTTP $code"
+          test "$code" = "401"
+          # Une connexion avec un mauvais mot de passe doit être refusée, sans erreur serveur
+          code=$(curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" \
+            -d '{"email":"inconnu@yay360.sn","password":"mauvais-mot-de-passe"}' "$API_URL/auth/login")
+          echo "Connexion invalide : HTTP $code"
+          test "$code" = "401" -o "$code" = "400"
