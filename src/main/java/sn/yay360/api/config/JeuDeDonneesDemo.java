@@ -292,6 +292,7 @@ public class JeuDeDonneesDemo {
         passee.setDateDernieresRegles(ddr);
         passee.setDatePrevueAccouchement(ddr.plusDays(280));
         passee.setStatut(StatutGrossesse.TERMINEE);
+        passee.setIssue(sn.yay360.api.model.IssueGrossesse.NAISSANCE_VIVANTE);
         passee.setDateFin(ddr.plusWeeks(39).plusDays(3));
         passee.setGrossesseARisque(false);
         passee.setNombreGrossessesPrecedentes(Math.max(rang - 1, 0));

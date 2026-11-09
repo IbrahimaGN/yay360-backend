@@ -32,6 +32,7 @@ public class GrossesseMapper {
             dto.setEtablissementSuiviNom(grossesse.getEtablissementSuivi().getNom());
         }
         dto.setDateFin(grossesse.getDateFin());
+        dto.setIssue(grossesse.getIssue());
         dto.setDateCreation(grossesse.getDateCreation());
         return dto;
     }

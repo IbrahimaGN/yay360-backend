@@ -10,6 +10,7 @@ import sn.yay360.api.dto.TerminerGrossesseRequest;
 import sn.yay360.api.exception.OperationNonAutoriseeException;
 import sn.yay360.api.exception.ResourceNotFoundException;
 import sn.yay360.api.mapper.GrossesseMapper;
+import sn.yay360.api.model.IssueGrossesse;
 import sn.yay360.api.model.EtablissementSante;
 import sn.yay360.api.model.Grossesse;
 import sn.yay360.api.model.RoleUtilisateur;
@@ -92,8 +93,16 @@ public class GrossesseHelper {
     @Transactional(readOnly = true)
     public List<GrossesseDto> obtenirHistorique(String emailFemme) {
         Utilisateur femme = dossierFamilialHelper.trouverFemmeAssociee(emailFemme);
+        // L'issue d'une grossesse (fausse couche, interruption…) relève du secret médical de la patiente :
+        // le conjoint voit seulement que la grossesse est close.
+        boolean conjoint = RoleUtilisateur.CONJOINT.equals(acces.utilisateur(emailFemme).getRole());
         return grossesseRepository.findByFemmeEnceinteIdOrderByDateCreationDesc(femme.getId()).stream()
                 .map(this::versDtoCalcule)
+                .peek(dto -> {
+                    if (conjoint) {
+                        dto.setIssue(null);
+                    }
+                })
                 .toList();
     }
 
@@ -241,7 +250,13 @@ public class GrossesseHelper {
         if (dateFin.isBefore(grossesse.getDateDernieresRegles())) {
             throw new IllegalArgumentException("La date de fin ne peut pas précéder la date des dernières règles");
         }
-        grossesse.setStatut(request.getStatut());
+        int semainesALaFin = (int) (java.time.temporal.ChronoUnit.DAYS.between(grossesse.getDateDernieresRegles(), dateFin) / 7);
+        String incoherence = IssueGrossesse.incoherence(request.getIssue(), semainesALaFin);
+        if (incoherence != null) {
+            throw new IllegalArgumentException(incoherence);
+        }
+        grossesse.setStatut(IssueGrossesse.statut(request.getIssue()));
+        grossesse.setIssue(request.getIssue());
         grossesse.setDateFin(dateFin);
         // Les rendez-vous encore prévus n'ont plus lieu d'être : ni rappel, ni consultation
         rendezVousRepository.findByGrossesseIdOrderByDateHeureDesc(grossesse.getId()).stream()

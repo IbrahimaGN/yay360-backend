@@ -39,5 +39,7 @@ public class GrossesseDto {
     private Long etablissementSuiviId;
     private String etablissementSuiviNom;
     private LocalDate dateFin;
+    /** Issue de la grossesse close ; masquée (null) pour le conjoint. */
+    private String issue;
     private LocalDateTime dateCreation;
 }

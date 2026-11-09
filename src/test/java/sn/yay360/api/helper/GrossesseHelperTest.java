@@ -4,6 +4,7 @@ import sn.yay360.api.dto.DeclarerGrossesseRequest;
 import sn.yay360.api.dto.GrossesseDto;
 import sn.yay360.api.exception.OperationNonAutoriseeException;
 import sn.yay360.api.mapper.GrossesseMapper;
+import sn.yay360.api.model.IssueGrossesse;
 import sn.yay360.api.model.Grossesse;
 import sn.yay360.api.model.RoleUtilisateur;
 import sn.yay360.api.model.StatutGrossesse;
@@ -209,7 +210,7 @@ class GrossesseHelperTest {
         Grossesse grossesse = grossesseEnCours();
         when(grossesseRepository.estSuivieParProfessionnel(10L, 50L)).thenReturn(true);
         TerminerGrossesseRequest incoherente = new TerminerGrossesseRequest();
-        incoherente.setStatut(StatutGrossesse.TERMINEE);
+        incoherente.setIssue(IssueGrossesse.NAISSANCE_VIVANTE);
         incoherente.setDateFin(LocalDate.now().minusWeeks(30));
 
         assertThatThrownBy(() -> grossesseHelper.terminer("dr@yay360.sn", 10L, incoherente))
@@ -217,10 +218,11 @@ class GrossesseHelperTest {
 
         when(grossesseRepository.save(any(Grossesse.class))).thenAnswer(i -> i.getArgument(0));
         TerminerGrossesseRequest request = new TerminerGrossesseRequest();
-        request.setStatut(StatutGrossesse.TERMINEE);
+        request.setIssue(IssueGrossesse.NAISSANCE_VIVANTE);
         grossesseHelper.terminer("dr@yay360.sn", 10L, request);
 
         assertThat(grossesse.getStatut()).isEqualTo(StatutGrossesse.TERMINEE);
+        assertThat(grossesse.getIssue()).isEqualTo(IssueGrossesse.NAISSANCE_VIVANTE);
         assertThat(grossesse.getDateFin()).isEqualTo(LocalDate.now());
     }
 
@@ -310,11 +312,83 @@ class GrossesseHelperTest {
         passe.setStatut("TERMINE");
         when(rendezVousRepository.findByGrossesseIdOrderByDateHeureDesc(10L)).thenReturn(List.of(prevu, passe));
         TerminerGrossesseRequest request = new TerminerGrossesseRequest();
-        request.setStatut(StatutGrossesse.INTERROMPUE);
+        request.setIssue(IssueGrossesse.FAUSSE_COUCHE);
+        request.setDateFin(LocalDate.now().minusWeeks(5)); // 15 SA
 
         grossesseHelper.terminer("dr@yay360.sn", 10L, request);
 
         assertThat(prevu.getStatut()).isEqualTo("ANNULE");
         assertThat(passe.getStatut()).isEqualTo("TERMINE");
+    }
+
+    // ==================== ISSUE DE LA GROSSESSE ====================
+
+    @Test
+    void terminer_leStatutEstDeduitDeLIssue() {
+        medecin();
+        Grossesse grossesse = grossesseEnCours(); // 20 SA aujourd'hui
+        when(grossesseRepository.estSuivieParProfessionnel(10L, 50L)).thenReturn(true);
+        when(grossesseRepository.save(any(Grossesse.class))).thenAnswer(i -> i.getArgument(0));
+        TerminerGrossesseRequest request = new TerminerGrossesseRequest();
+        request.setIssue(IssueGrossesse.GROSSESSE_EXTRA_UTERINE);
+        request.setDateFin(LocalDate.now().minusWeeks(12)); // 8 SA
+
+        GrossesseDto dto = grossesseHelper.terminer("dr@yay360.sn", 10L, request);
+
+        assertThat(grossesse.getStatut()).isEqualTo(StatutGrossesse.INTERROMPUE);
+        assertThat(dto.getIssue()).isEqualTo(IssueGrossesse.GROSSESSE_EXTRA_UTERINE);
+    }
+
+    @Test
+    void terminer_refuseUneFausseCoucheAPartirDe22SA_etUneMortFoetaleAvant() {
+        medecin();
+        Grossesse grossesse = grossesseEnCours();
+        grossesse.setDateDernieresRegles(LocalDate.now().minusWeeks(24));
+        when(grossesseRepository.estSuivieParProfessionnel(10L, 50L)).thenReturn(true);
+
+        TerminerGrossesseRequest fausseCouche = new TerminerGrossesseRequest();
+        fausseCouche.setIssue(IssueGrossesse.FAUSSE_COUCHE);
+        assertThatThrownBy(() -> grossesseHelper.terminer("dr@yay360.sn", 10L, fausseCouche))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("avant 22 SA");
+
+        TerminerGrossesseRequest mortFoetale = new TerminerGrossesseRequest();
+        mortFoetale.setIssue(IssueGrossesse.MORT_FOETALE_IN_UTERO);
+        mortFoetale.setDateFin(LocalDate.now().minusWeeks(6)); // 18 SA
+        assertThatThrownBy(() -> grossesseHelper.terminer("dr@yay360.sn", 10L, mortFoetale))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("fausse couche");
+        assertThat(grossesse.getStatut()).isEqualTo(StatutGrossesse.EN_COURS);
+        verify(grossesseRepository, never()).save(any());
+    }
+
+    @Test
+    void historique_leConjointNeVoitPasLIssue_laPatienteLaVoit() {
+        Grossesse close = new Grossesse();
+        close.setId(10L);
+        close.setFemmeEnceinte(femme);
+        close.setDateDernieresRegles(LocalDate.now().minusWeeks(20));
+        close.setDatePrevueAccouchement(LocalDate.now().minusWeeks(20).plusDays(280));
+        close.setGrossesseARisque(false);
+        close.setStatut(StatutGrossesse.INTERROMPUE);
+        close.setIssue(IssueGrossesse.FAUSSE_COUCHE);
+        Utilisateur conjoint = new Utilisateur();
+        conjoint.setId(2L);
+        conjoint.setEmail("conjoint@yay360.sn");
+        conjoint.setRole(RoleUtilisateur.CONJOINT);
+        conjoint.setFemmeAssociee(femme);
+        when(utilisateurRepository.findByEmailIgnoreCase("conjoint@yay360.sn")).thenReturn(Optional.of(conjoint));
+        when(utilisateurRepository.findByEmailIgnoreCase(femme.getEmail())).thenReturn(Optional.of(femme));
+        when(grossesseRepository.findByFemmeEnceinteIdOrderByDateCreationDesc(1L)).thenReturn(List.of(close));
+
+        assertThat(grossesseHelper.obtenirHistorique("conjoint@yay360.sn"))
+                .singleElement()
+                .satisfies(dto -> {
+                    assertThat(dto.getStatut()).isEqualTo(StatutGrossesse.INTERROMPUE);
+                    assertThat(dto.getIssue()).isNull();
+                });
+        assertThat(grossesseHelper.obtenirHistorique(femme.getEmail()))
+                .singleElement()
+                .satisfies(dto -> assertThat(dto.getIssue()).isEqualTo(IssueGrossesse.FAUSSE_COUCHE));
     }
 }

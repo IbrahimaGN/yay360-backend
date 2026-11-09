@@ -61,6 +61,10 @@ public class Grossesse {
     @Column(name = "date_fin")
     private LocalDate dateFin;
 
+    /** Issue saisie à la clôture : valeur de {@link IssueGrossesse}. */
+    @Column(name = "issue", length = 30)
+    private String issue;
+
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 
