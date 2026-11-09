@@ -11,7 +11,7 @@ public class DeclarerSymptomeRequest {
     @NotBlank(message = "Le type de symptôme est obligatoire")
     @jakarta.validation.constraints.Pattern(
             regexp = "SAIGNEMENTS|DOULEURS_ABDOMINALES|PERTE_LIQUIDE|DIMINUTION_MOUVEMENTS_BEBE|FIEVRE_ELEVEE"
-                    + "|MAUX_DE_TETE_INTENSES|OEDEMES_SOUDAINS|VOMISSEMENTS_SEVERES|TROUBLES_VISUELS|CONVULSIONS|AUTRE",
+                    + "|MAUX_DE_TETE_INTENSES|OEDEMES_SOUDAINS|VOMISSEMENTS_SEVERES|TROUBLES_VISUELS|CONVULSIONS|DIFFICULTES_RESPIRATOIRES|AUTRE",
             message = "Type de symptôme inconnu")
     private String typeSymptome;
 

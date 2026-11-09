@@ -285,5 +285,63 @@ class MoteurReglesCliniquesTest {
             assertThat(triage.niveau()).isEqualTo(NiveauGravite.URGENT);
             assertThat(triage.justifications()).anySatisfy(j -> assertThat(j).contains("prééclampsie"));
         }
+
+        @Test
+        void lesDifficultesRespiratoiresSontUrgentesDesLeDebut() {
+            assertThat(moteur.trierSymptome(TypeSymptome.DIFFICULTES_RESPIRATOIRES, 8, false, 0).niveau())
+                    .isEqualTo(NiveauGravite.URGENT);
+        }
+    }
+
+    @Nested
+    class ConstantesComplementaires {
+
+        private List<SignalClinique> analyser(int semaine, String ta, Integer fc, String proteinurie, String glycosurie) {
+            return moteur.analyserConstantesComplementaires(semaine, ta, fc, proteinurie, glycosurie);
+        }
+
+        @Test
+        void desactiveesParDefaut_aucunSignalTantQueLesSeuilsNeSontPasValides() {
+            assertThat(moteur.reglesComplementairesActives()).isFalse();
+            assertThat(analyser(30, "150/95", 130, "TROIS_CROIX", "TROIS_CROIX")).isEmpty();
+        }
+
+        @Test
+        void hypertensionEtProteinurieApres20SA_suspicionDePreeclampsieUrgente() {
+            moteur.activerReglesComplementaires(true);
+
+            List<SignalClinique> signaux = analyser(28, "145/92", null, "UNE_CROIX", null);
+
+            assertThat(signaux).extracting(SignalClinique::code).containsExactly("PREECLAMPSIE_SUSPECTEE");
+            assertThat(signaux.get(0).niveau()).isEqualTo(NiveauGravite.URGENT);
+            assertThat(signaux.get(0).message()).contains("protéinurie +").contains("28 SA");
+        }
+
+        @Test
+        void avant20SA_laProteinurieSeuleCompteSelonSonIntensite() {
+            moteur.activerReglesComplementaires(true);
+
+            assertThat(analyser(16, "145/92", null, "UNE_CROIX", null)).isEmpty();
+            assertThat(analyser(16, "120/80", null, "DEUX_CROIX", null))
+                    .extracting(SignalClinique::code, SignalClinique::niveau)
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("PROTEINURIE", NiveauGravite.ELEVE));
+        }
+
+        @Test
+        void tracesEtNegatif_nAlertentPas() {
+            moteur.activerReglesComplementaires(true);
+
+            assertThat(analyser(30, "120/80", 80, "TRACES", "NEGATIVE")).isEmpty();
+        }
+
+        @Test
+        void glycosurieEtTachycardie_signauxModeres() {
+            moteur.activerReglesComplementaires(true);
+
+            assertThat(analyser(30, "120/80", 112, "NEGATIVE", "UNE_CROIX"))
+                    .extracting(SignalClinique::code)
+                    .containsExactly("GLYCOSURIE", "TACHYCARDIE_MATERNELLE");
+            assertThat(analyser(30, "120/80", 100, null, null)).isEmpty();
+        }
     }
 }

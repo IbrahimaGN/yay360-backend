@@ -100,6 +100,9 @@ public class ConsultationHelper {
         consultation.setTemperatureC(request.getTemperatureC());
         consultation.setHauteurUterineCm(request.getHauteurUterineCm());
         consultation.setBattementsCoeurFoetal(request.getBattementsCoeurFoetal());
+        consultation.setFrequenceCardiaqueMaternelle(request.getFrequenceCardiaqueMaternelle());
+        consultation.setProteinurie(request.getProteinurie());
+        consultation.setGlycosurie(request.getGlycosurie());
         consultation.setObservations(request.getObservations());
         consultation.setDiagnostic(request.getDiagnostic());
         consultation.setTraitement(request.getTraitement());
@@ -136,9 +139,13 @@ public class ConsultationHelper {
         Long jours = precedente != null
                 ? ChronoUnit.DAYS.between(precedente.getDateConsultation().toLocalDate(), LocalDate.now())
                 : null;
-        return moteur.analyserConstantes(semaine, request.getTensionArterielle(), request.getTemperatureC(),
-                request.getBattementsCoeurFoetal(), request.getHauteurUterineCm(), request.getPoidsKg(),
-                poidsPrecedent, jours);
+        List<MoteurReglesCliniques.SignalClinique> signaux = new java.util.ArrayList<>(
+                moteur.analyserConstantes(semaine, request.getTensionArterielle(), request.getTemperatureC(),
+                        request.getBattementsCoeurFoetal(), request.getHauteurUterineCm(), request.getPoidsKg(),
+                        poidsPrecedent, jours));
+        signaux.addAll(moteur.analyserConstantesComplementaires(semaine, request.getTensionArterielle(),
+                request.getFrequenceCardiaqueMaternelle(), request.getProteinurie(), request.getGlycosurie()));
+        return signaux;
     }
 
     /**

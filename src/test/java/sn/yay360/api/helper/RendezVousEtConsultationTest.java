@@ -225,6 +225,22 @@ class RendezVousEtConsultationTest {
     }
 
     @Test
+    void consultation_enregistreLesConstantesComplementairesSansAlerteTantQueLesReglesSontInactives() {
+        EnregistrerConsultationRequest request = consultation(null);
+        request.setFrequenceCardiaqueMaternelle(118);
+        request.setProteinurie("DEUX_CROIX");
+        request.setGlycosurie("UNE_CROIX");
+
+        ConsultationDto dto = consultationHelper.enregistrer("dr@yay360.sn", request);
+
+        assertThat(dto.getFrequenceCardiaqueMaternelle()).isEqualTo(118);
+        assertThat(dto.getProteinurie()).isEqualTo("DEUX_CROIX");
+        assertThat(dto.getGlycosurie()).isEqualTo("UNE_CROIX");
+        assertThat(dto.getSignauxCliniques()).isEmpty();
+        verify(alerteRepository, never()).save(any());
+    }
+
+    @Test
     void consultation_refuseUneGrossesseCloturee() {
         grossesse.setStatut(StatutGrossesse.TERMINEE);
 

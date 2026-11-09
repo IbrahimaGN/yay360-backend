@@ -77,6 +77,11 @@ yay360:
   demo-data:
     enabled: ${YAY360_DEMO_DATA_ENABLED:false}
     password: ${YAY360_DEMO_PASSWORD:}
+  regles:
+    complementaires:
+      # Règles sur la FC maternelle, la protéinurie et la glycosurie : seuils à faire valider par
+      # un professionnel de santé avant de passer à true. Désactivées, les valeurs sont seulement enregistrées.
+      actives: ${YAY360_REGLES_COMPLEMENTAIRES_ACTIVES:false}
 
 management:
   endpoints:

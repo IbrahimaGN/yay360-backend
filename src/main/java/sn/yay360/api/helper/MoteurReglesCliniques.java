@@ -1,7 +1,9 @@
 package sn.yay360.api.helper;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import sn.yay360.api.model.NiveauGravite;
+import sn.yay360.api.model.ResultatBandelette;
 import sn.yay360.api.model.TypeSymptome;
 
 import java.text.Normalizer;
@@ -137,6 +139,66 @@ public class MoteurReglesCliniques {
         return signaux;
     }
 
+    // ==================== 1 bis. CONSTANTES COMPLÉMENTAIRES (EN ATTENTE DE VALIDATION) ====================
+
+    /**
+     * Règles sur les constantes demandées par la sage-femme interrogée : fréquence cardiaque maternelle,
+     * protéinurie et glycosurie. Leurs seuils doivent être validés par un professionnel de santé avant
+     * activation : tant que {@code yay360.regles.complementaires.actives} vaut false, aucune n'est appliquée
+     * (les valeurs sont seulement enregistrées et affichées).
+     */
+    @Value("${yay360.regles.complementaires.actives:false}")
+    private boolean reglesComplementairesActives;
+
+    void activerReglesComplementaires(boolean actives) {
+        this.reglesComplementairesActives = actives;
+    }
+
+    public boolean reglesComplementairesActives() {
+        return reglesComplementairesActives;
+    }
+
+    /**
+     * Seuils proposés (à valider) :
+     * <ul>
+     *   <li>après 20 SA, PA ≥ 140/90 et protéinurie ≥ + : suspicion de prééclampsie (URGENT) ;</li>
+     *   <li>protéinurie ≥ ++ sans hypertension : ÉLEVÉ ;</li>
+     *   <li>glycosurie ≥ + : contrôler la glycémie, diabète gestationnel ? (MODÉRÉ) ;</li>
+     *   <li>fréquence cardiaque maternelle &gt; 100/min : tachycardie (MODÉRÉ).</li>
+     * </ul>
+     */
+    public List<SignalClinique> analyserConstantesComplementaires(int semaine, String tensionArterielle,
+                                                                  Integer frequenceCardiaqueMaternelle,
+                                                                  String proteinurie, String glycosurie) {
+        List<SignalClinique> signaux = new ArrayList<>();
+        if (!reglesComplementairesActives) {
+            return signaux;
+        }
+        int[] pa = lireTension(tensionArterielle);
+        boolean hypertension = pa != null && (pa[0] >= 140 || pa[1] >= 90);
+        if (hypertension && semaine >= 20 && ResultatBandelette.auMoins(proteinurie, ResultatBandelette.UNE_CROIX)) {
+            signaux.add(new SignalClinique("PREECLAMPSIE_SUSPECTEE", NiveauGravite.URGENT,
+                    "Pression artérielle " + tensionArterielle + " mmHg ≥ 140/90 et protéinurie "
+                            + ResultatBandelette.libelle(proteinurie) + " après 20 SA (" + semaine
+                            + " SA) : suspicion de prééclampsie. Évaluation médicale immédiate."));
+        } else if (ResultatBandelette.auMoins(proteinurie, ResultatBandelette.DEUX_CROIX)) {
+            signaux.add(new SignalClinique("PROTEINURIE", NiveauGravite.ELEVE,
+                    "Protéinurie " + ResultatBandelette.libelle(proteinurie)
+                            + " à la bandelette : contrôler la pression artérielle et rechercher une atteinte rénale."));
+        }
+        if (ResultatBandelette.auMoins(glycosurie, ResultatBandelette.UNE_CROIX)) {
+            signaux.add(new SignalClinique("GLYCOSURIE", NiveauGravite.MODERE,
+                    "Glycosurie " + ResultatBandelette.libelle(glycosurie)
+                            + " à la bandelette : contrôler la glycémie (diabète gestationnel ?)."));
+        }
+        if (frequenceCardiaqueMaternelle != null && frequenceCardiaqueMaternelle > 100) {
+            signaux.add(new SignalClinique("TACHYCARDIE_MATERNELLE", NiveauGravite.MODERE,
+                    "Fréquence cardiaque maternelle " + frequenceCardiaqueMaternelle
+                            + "/min > 100/min : tachycardie, rechercher fièvre, anémie ou déshydratation."));
+        }
+        return signaux;
+    }
+
     public static String niveauMax(List<SignalClinique> signaux) {
         return signaux.stream().map(SignalClinique::niveau)
                 .max((a, b) -> ORDRE_GRAVITE.indexOf(a) - ORDRE_GRAVITE.indexOf(b))
@@ -173,6 +235,7 @@ public class MoteurReglesCliniques {
             Map.entry(TypeSymptome.DIMINUTION_MOUVEMENTS_BEBE, NiveauGravite.URGENT),
             Map.entry(TypeSymptome.FIEVRE_ELEVEE, NiveauGravite.URGENT),
             Map.entry(TypeSymptome.CONVULSIONS, NiveauGravite.URGENT),
+            Map.entry(TypeSymptome.DIFFICULTES_RESPIRATOIRES, NiveauGravite.URGENT),
             Map.entry(TypeSymptome.MAUX_DE_TETE_INTENSES, NiveauGravite.ELEVE),
             Map.entry(TypeSymptome.OEDEMES_SOUDAINS, NiveauGravite.ELEVE),
             Map.entry(TypeSymptome.TROUBLES_VISUELS, NiveauGravite.ELEVE),
