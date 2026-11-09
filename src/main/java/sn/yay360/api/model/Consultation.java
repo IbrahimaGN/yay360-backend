@@ -63,6 +63,18 @@ public class Consultation {
     @Column(name = "battements_coeur_foetal")
     private Integer battementsCoeurFoetal;
 
+    /** Fréquence cardiaque maternelle (battements/min). */
+    @Column(name = "frequence_cardiaque_maternelle")
+    private Integer frequenceCardiaqueMaternelle;
+
+    /** Protéinurie à la bandelette : valeur de {@link ResultatBandelette}. */
+    @Column(name = "proteinurie", length = 12)
+    private String proteinurie;
+
+    /** Glycosurie à la bandelette : valeur de {@link ResultatBandelette}. */
+    @Column(name = "glycosurie", length = 12)
+    private String glycosurie;
+
     @Column(columnDefinition = "TEXT")
     private String observations;
 

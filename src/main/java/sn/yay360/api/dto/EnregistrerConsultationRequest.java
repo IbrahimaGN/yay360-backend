@@ -50,6 +50,19 @@ public class EnregistrerConsultationRequest {
     @Max(value = 300, message = "Les battements du cœur fœtal semblent invalides")
     private Integer battementsCoeurFoetal;
 
+    @Min(value = 30, message = "La fréquence cardiaque maternelle semble invalide")
+    @Max(value = 250, message = "La fréquence cardiaque maternelle semble invalide")
+    private Integer frequenceCardiaqueMaternelle;
+
+    /** Bandelette urinaire : NEGATIVE, TRACES, UNE_CROIX, DEUX_CROIX ou TROIS_CROIX. */
+    @jakarta.validation.constraints.Pattern(regexp = sn.yay360.api.model.ResultatBandelette.MOTIF,
+            message = "Protéinurie : valeur de bandelette inconnue")
+    private String proteinurie;
+
+    @jakarta.validation.constraints.Pattern(regexp = sn.yay360.api.model.ResultatBandelette.MOTIF,
+            message = "Glycosurie : valeur de bandelette inconnue")
+    private String glycosurie;
+
     private String observations;
     private String diagnostic;
     private String traitement;

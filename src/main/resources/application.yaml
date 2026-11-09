@@ -77,6 +77,11 @@ yay360:
   demo-data:
     enabled: ${YAY360_DEMO_DATA_ENABLED:false}
     password: ${YAY360_DEMO_PASSWORD:}
+  regles:
+    complementaires:
+      # Règles sur la FC maternelle, la protéinurie et la glycosurie (seuils ISSHP, NICE NG3, MEOWS).
+      # false : les valeurs sont seulement enregistrées (par exemple si un protocole local les contredit).
+      actives: ${YAY360_REGLES_COMPLEMENTAIRES_ACTIVES:true}
 
 management:
   endpoints:

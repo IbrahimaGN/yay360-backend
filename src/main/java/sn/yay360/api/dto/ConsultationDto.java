@@ -28,6 +28,9 @@ public class ConsultationDto {
     private Double temperatureC;
     private Double hauteurUterineCm;
     private Integer battementsCoeurFoetal;
+    private Integer frequenceCardiaqueMaternelle;
+    private String proteinurie;
+    private String glycosurie;
 
     private String observations;
     private String diagnostic;

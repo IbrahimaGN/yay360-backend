@@ -12,6 +12,8 @@ public class TypeSymptome {
     public static final String VOMISSEMENTS_SEVERES = "VOMISSEMENTS_SEVERES";
     public static final String TROUBLES_VISUELS = "TROUBLES_VISUELS";
     public static final String CONVULSIONS = "CONVULSIONS";
+    /** Signe d'alerte cité par la sage-femme interrogée (expression des besoins). */
+    public static final String DIFFICULTES_RESPIRATOIRES = "DIFFICULTES_RESPIRATOIRES";
     public static final String AUTRE = "AUTRE";
 
     private TypeSymptome() {
