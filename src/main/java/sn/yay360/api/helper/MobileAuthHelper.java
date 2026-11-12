@@ -24,6 +24,7 @@ import sn.yay360.api.service.EmailService;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
@@ -302,7 +303,8 @@ public class MobileAuthHelper {
     private CodeVerification nouveauCode(String telephone) {
         LocalDateTime maintenant = LocalDateTime.now();
         codeRepository.findFirstByTelephoneOrderByDateEnvoiDesc(telephone).ifPresent(dernier -> {
-            long ecoule = Duration.between(dernier.getDateEnvoi(), maintenant).getSeconds();
+            long ecoule = Duration.between(dernier.getDateEnvoi().atZone(ZoneId.systemDefault()),
+                    maintenant.atZone(ZoneId.systemDefault())).getSeconds();
             if (ecoule < delaiRenvoiSecondes) {
                 throw new TropDeDemandesException("Patientez " + (delaiRenvoiSecondes - ecoule)
                         + " secondes avant de demander un nouveau code.");

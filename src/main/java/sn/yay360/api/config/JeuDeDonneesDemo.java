@@ -590,10 +590,16 @@ public class JeuDeDonneesDemo {
     }
 
     /** Les dates d'envoi et de déclaration sont fixées à l'insertion : on les antidate pour un historique crédible. */
-    private void antidater(String table, String colonne, Long id, LocalDateTime date) {
+    void antidater(String table, String colonne, Long id, LocalDateTime date) {
         if (id == null) {
             return;
         }
-        jdbcTemplate.update("UPDATE " + table + " SET " + colonne + " = ? WHERE id = ?", Timestamp.valueOf(date), id);
+        // Requêtes fixes : aucun nom de table ou de colonne n'est assemblé dynamiquement.
+        String sql = switch (table + "." + colonne) {
+            case "notifications.date_envoi" -> "UPDATE notifications SET date_envoi = ? WHERE id = ?";
+            case "alertes_medicales.date_declaration" -> "UPDATE alertes_medicales SET date_declaration = ? WHERE id = ?";
+            default -> throw new IllegalArgumentException("Colonne non antidatable : " + table + "." + colonne);
+        };
+        jdbcTemplate.update(sql, Timestamp.valueOf(date), id);
     }
 }

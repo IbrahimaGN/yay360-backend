@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,8 +108,14 @@ public class DashboardHelper {
     }
 
     private Double delaiMoyenPriseEnCharge() {
-        return alerteMedicaleRepository.delaisPriseEnCharge().stream()
-                .mapToLong(l -> Duration.between((LocalDateTime) l[0], (LocalDateTime) l[1]).toMinutes())
+        return delaiMoyenMinutes(alerteMedicaleRepository.delaisPriseEnCharge());
+    }
+
+    /** Moyenne, en minutes arrondies au dixième, des couples [déclaration, prise en charge] ; null si aucun. */
+    static Double delaiMoyenMinutes(List<Object[]> delais) {
+        return delais.stream()
+                .mapToLong(l -> Duration.between(((LocalDateTime) l[0]).atZone(ZoneId.systemDefault()),
+                        ((LocalDateTime) l[1]).atZone(ZoneId.systemDefault())).toMinutes())
                 .average()
                 .stream().boxed().map(m -> Math.round(m * 10) / 10.0)
                 .findFirst().orElse(null);

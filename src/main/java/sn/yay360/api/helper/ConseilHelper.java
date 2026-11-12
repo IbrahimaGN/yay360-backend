@@ -108,7 +108,9 @@ public class ConseilHelper {
 
     private ConseilDto versDtoDansLimite(ConseilGrossesse conseil) {
         ConseilDto dto = conseilMapper.versDto(conseil);
-        dto.setSemaineFin(Math.min(dto.getSemaineFin(), CalculObstetricalHelper.DUREE_GROSSESSE_SEMAINES));
+        if (dto.getSemaineFin() != null) {
+            dto.setSemaineFin(Math.min(dto.getSemaineFin(), CalculObstetricalHelper.DUREE_GROSSESSE_SEMAINES));
+        }
         return dto;
     }
 }
