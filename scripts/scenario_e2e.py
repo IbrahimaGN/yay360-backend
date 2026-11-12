@@ -1,9 +1,13 @@
 """Scénario de bout en bout YAY360 contre la plateforme Docker locale (données fictives).
 Usage : python scenario_e2e.py <chemin .env> <url de base>  (ex. http://localhost:4200/api)
 Le mot de passe de démonstration est lu dans .env et n'est jamais affiché."""
-import datetime, json, sys, urllib.request, urllib.error
+import datetime, json, pathlib, sys, urllib.request, urllib.error
 
-env = dict(l.split('=', 1) for l in open(sys.argv[1], encoding='utf-8').read().splitlines()
+# Le premier argument doit désigner un fichier .env existant (pas un chemin arbitraire).
+fichier_env = pathlib.Path(sys.argv[1]).resolve(strict=True)
+if fichier_env.name != '.env' or not fichier_env.is_file():
+    sys.exit("Refus : le premier argument doit être le chemin d'un fichier .env.")
+env = dict(l.split('=', 1) for l in fichier_env.read_text(encoding='utf-8').splitlines()
            if '=' in l and not l.lstrip().startswith('#'))
 MDP = env['YAY360_DEMO_PASSWORD'].strip()
 BASE = sys.argv[2].rstrip('/')

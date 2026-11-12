@@ -63,7 +63,10 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(csrf -> csrf.disable())
+                // CSRF désactivé volontairement : l'API est sans état et s'authentifie uniquement par le
+                // jeton porté dans l'en-tête Authorization, jamais par cookie. Un site tiers ne peut pas
+                // ajouter cet en-tête à une requête forgée : l'attaque CSRF n'a donc pas de prise ici.
+                .csrf(csrf -> csrf.disable()) // NOSONAR : justifié ci-dessus (API sans état, jeton en en-tête)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(ENDPOINTS_PUBLICS).permitAll()

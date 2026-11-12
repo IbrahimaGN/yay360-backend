@@ -88,12 +88,14 @@ public class DataInitializer implements CommandLineRunner {
         return enregistre;
     }
 
+    /** Générateur partagé : un SecureRandom se réutilise, il ne se recrée pas à chaque appel. */
+    private static final SecureRandom ALEATOIRE = new SecureRandom();
+
     static String genererMotDePasse() {
         String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-        SecureRandom aleatoire = new SecureRandom();
         StringBuilder sb = new StringBuilder("Yay-");
         for (int i = 0; i < 16; i++) {
-            sb.append(alphabet.charAt(aleatoire.nextInt(alphabet.length())));
+            sb.append(alphabet.charAt(ALEATOIRE.nextInt(alphabet.length())));
         }
         return sb.append('9').toString();
     }

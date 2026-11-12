@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -236,7 +237,7 @@ public class MoteurReglesCliniques {
 
     public static String niveauMax(List<SignalClinique> signaux) {
         return signaux.stream().map(SignalClinique::niveau)
-                .max((a, b) -> ORDRE_GRAVITE.indexOf(a) - ORDRE_GRAVITE.indexOf(b))
+                .max(Comparator.comparingInt(ORDRE_GRAVITE::indexOf))
                 .orElse(null);
     }
 
