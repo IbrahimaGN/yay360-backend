@@ -108,7 +108,12 @@ public class DashboardHelper {
     }
 
     private Double delaiMoyenPriseEnCharge() {
-        return alerteMedicaleRepository.delaisPriseEnCharge().stream()
+        return delaiMoyenMinutes(alerteMedicaleRepository.delaisPriseEnCharge());
+    }
+
+    /** Moyenne, en minutes arrondies au dixième, des couples [déclaration, prise en charge] ; null si aucun. */
+    static Double delaiMoyenMinutes(List<Object[]> delais) {
+        return delais.stream()
                 .mapToLong(l -> Duration.between(((LocalDateTime) l[0]).atZone(ZoneId.systemDefault()),
                         ((LocalDateTime) l[1]).atZone(ZoneId.systemDefault())).toMinutes())
                 .average()

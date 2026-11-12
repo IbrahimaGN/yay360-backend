@@ -590,7 +590,7 @@ public class JeuDeDonneesDemo {
     }
 
     /** Les dates d'envoi et de déclaration sont fixées à l'insertion : on les antidate pour un historique crédible. */
-    private void antidater(String table, String colonne, Long id, LocalDateTime date) {
+    void antidater(String table, String colonne, Long id, LocalDateTime date) {
         if (id == null) {
             return;
         }
