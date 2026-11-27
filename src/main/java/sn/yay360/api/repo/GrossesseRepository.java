@@ -32,6 +32,19 @@ public interface GrossesseRepository extends JpaRepository<Grossesse, Long> {
 
     long countByStatutAndGrossesseARisqueTrue(String statut);
 
+    // --- Tableau de bord d'un établissement (grossesses dont il est l'établissement de suivi) ---
+
+    @Query("select g.statut, count(g) from Grossesse g where g.etablissementSuivi.id = :etablissementId group by g.statut")
+    List<Object[]> compterParStatutDansEtablissement(@Param("etablissementId") Long etablissementId);
+
+    long countByStatutAndGrossesseARisqueTrueAndEtablissementSuiviId(String statut, Long etablissementId);
+
+    @Query("select g.dateDernieresRegles from Grossesse g where g.statut = 'EN_COURS' and g.etablissementSuivi.id = :etablissementId")
+    List<java.time.LocalDate> datesDernieresReglesEnCoursDansEtablissement(@Param("etablissementId") Long etablissementId);
+
+    @Query("select count(distinct g.femmeEnceinte.id) from Grossesse g where g.etablissementSuivi.id = :etablissementId")
+    long compterPatientesDansEtablissement(@Param("etablissementId") Long etablissementId);
+
     /**
      * Grossesses d'un statut donné suivies par un professionnel : établissement de suivi
      * dont il est membre, ou lien de soin direct (RDV assigné, consultation, alerte prise en charge).

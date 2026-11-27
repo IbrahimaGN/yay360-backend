@@ -28,6 +28,11 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     @org.springframework.data.jpa.repository.Query("select r.statut, count(r) from RendezVous r group by r.statut")
     List<Object[]> compterParStatut();
 
+    @org.springframework.data.jpa.repository.Query(
+            "select r.statut, count(r) from RendezVous r where r.etablissement.id = :etablissementId group by r.statut")
+    List<Object[]> compterParStatutDansEtablissement(
+            @org.springframework.data.repository.query.Param("etablissementId") Long etablissementId);
+
     long countByGrossesseIdAndDateHeureAfterAndStatutIn(Long grossesseId, LocalDateTime apres, List<String> statuts);
 
     long countByEtablissementId(Long etablissementId);

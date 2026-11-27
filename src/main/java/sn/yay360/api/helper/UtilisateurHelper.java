@@ -49,10 +49,11 @@ public class UtilisateurHelper {
             RoleUtilisateur.SAGE_FEMME, RoleUtilisateur.FEMME_ENCEINTE, RoleUtilisateur.CONJOINT);
 
     /**
-     * Création d'un compte soignant ou administrateur (cahier des charges §3 : l'administrateur gère
-     * les comptes professionnels). Un mot de passe temporaire est généré ; il devra être changé à la
-     * première connexion. Un administrateur d'établissement ne crée que des soignants, rattachés
-     * d'office à son établissement.
+     * Création d'un compte par un administrateur. Un mot de passe temporaire est généré ; il devra être
+     * changé à la première connexion. L'administrateur de la plateforme crée uniquement des administrateurs :
+     * d'autres administrateurs de la plateforme, et les administrateurs d'établissement (un seul par
+     * établissement) ; chaque administrateur d'établissement crée les médecins et les sages-femmes,
+     * rattachés d'office à son établissement.
      */
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ADMIN_ETABLISSEMENT')")
     @Transactional
@@ -111,18 +112,26 @@ public class UtilisateurHelper {
             }
             return perimetre.etablissementAdministre(auteur);
         }
-        if (request.getEtablissementId() == null) {
-            if (RoleUtilisateur.ADMIN_ETABLISSEMENT.equals(role)) {
-                throw new IllegalArgumentException("L'établissement est obligatoire pour un administrateur d'établissement");
+        if (RoleUtilisateur.ADMIN.equals(role)) {
+            if (request.getEtablissementId() != null) {
+                throw new IllegalArgumentException("Un administrateur de la plateforme n'est rattaché à aucun établissement");
             }
             return null;
         }
-        if (RoleUtilisateur.ADMIN.equals(role)) {
-            throw new IllegalArgumentException("Un administrateur de la plateforme n'est rattaché à aucun établissement");
+        if (!RoleUtilisateur.ADMIN_ETABLISSEMENT.equals(role)) {
+            throw new OperationNonAutoriseeException("L'administrateur de la plateforme crée uniquement des "
+                    + "administrateurs : les soignants sont créés par l'administrateur de leur établissement");
         }
-        return etablissementRepository.findById(request.getEtablissementId())
+        if (request.getEtablissementId() == null) {
+            throw new IllegalArgumentException("L'établissement est obligatoire pour un administrateur d'établissement");
+        }
+        EtablissementSante etablissement = etablissementRepository.findById(request.getEtablissementId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Établissement introuvable avec l'id : " + request.getEtablissementId()));
+        if (utilisateurRepository.existsByEtablissementAdministreId(etablissement.getId())) {
+            throw new IllegalArgumentException("Cet établissement a déjà un administrateur");
+        }
+        return etablissement;
     }
 
     public UtilisateurDto obtenirProfil(String email) {

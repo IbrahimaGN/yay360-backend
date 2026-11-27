@@ -86,7 +86,8 @@ public class EtablissementHelper {
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ADMIN_ETABLISSEMENT')")
+    /** Réservé à l'administrateur d'établissement : l'administrateur de la plateforme n'affecte aucun soignant. */
+    @PreAuthorize("hasAuthority('ADMIN_ETABLISSEMENT')")
     public EtablissementDto affecterProfessionnel(String emailAuteur, Long id, AffecterProfessionnelRequest request) {
         perimetre.verifierGestionEtablissement(perimetre.auteur(emailAuteur), id);
         EtablissementSante etablissement = trouverParId(id);
@@ -102,7 +103,7 @@ public class EtablissementHelper {
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ADMIN_ETABLISSEMENT')")
+    @PreAuthorize("hasAuthority('ADMIN_ETABLISSEMENT')")
     public EtablissementDto retirerProfessionnel(String emailAuteur, Long id, Long professionnelId) {
         perimetre.verifierGestionEtablissement(perimetre.auteur(emailAuteur), id);
         EtablissementSante etablissement = trouverParId(id);
@@ -129,7 +130,7 @@ public class EtablissementHelper {
         etablissementRepository.deleteById(id);
     }
 
-    /** Soignant désigné par son id (administrateur de la plateforme) ou par son email. */
+    /** Soignant désigné par son id ou par son email. */
     private Utilisateur professionnelDesigne(AffecterProfessionnelRequest request) {
         if (request.getProfessionnelId() != null) {
             return utilisateurRepository.findById(request.getProfessionnelId())
