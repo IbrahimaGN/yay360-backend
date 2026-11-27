@@ -54,7 +54,7 @@ public class RendezVousController {
     }
 
     @GetMapping
-    @Operation(summary = "Rendez-vous par statut : patientes suivies (soignant) ou tous (admin)")
+    @Operation(summary = "Rendez-vous par statut des patientes que je suis (soignant)")
     public List<RendezVousDto> listerParStatut(Authentication authentication, @RequestParam String statut) {
         return rendezVousService.listerParStatut(authentication.getName(), statut);
     }

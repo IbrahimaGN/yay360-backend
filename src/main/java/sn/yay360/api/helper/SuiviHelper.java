@@ -36,7 +36,7 @@ public class SuiviHelper {
         return genererSuivi(grossesse);
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
     public SuiviHebdomadaireDto obtenirSuiviParId(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);
         acces.verifierLecture(acces.utilisateur(email), grossesse);

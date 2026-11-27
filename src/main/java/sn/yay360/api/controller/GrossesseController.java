@@ -93,10 +93,10 @@ public class GrossesseController {
         return intelligenceCliniqueService.monPlanCpn(authentication.getName());
     }
 
-    // ==================== PROFESSIONNELS / ADMIN ====================
+    // ==================== SOIGNANTS ====================
 
     @GetMapping
-    @Operation(summary = "Grossesses en cours : celles que je suis (soignant) ou toutes (admin)")
+    @Operation(summary = "Grossesses en cours que je suis (soignant)")
     public List<GrossesseDto> listerActives(Authentication authentication) {
         return grossesseService.listerActives(authentication.getName());
     }
@@ -117,7 +117,7 @@ public class GrossesseController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Fiche d'une grossesse (soignant qui la suit, ou admin)")
+    @Operation(summary = "Fiche d'une grossesse (soignant qui la suit)")
     public GrossesseDto obtenirParId(Authentication authentication, @PathVariable Long id) {
         return grossesseService.obtenirParId(authentication.getName(), id);
     }

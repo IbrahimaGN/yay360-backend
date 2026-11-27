@@ -46,6 +46,7 @@ import java.util.Map;
  *
  * <ul>
  *   <li>6 médecins et 6 sages-femmes répartis dans les 5 établissements ;</li>
+ *   <li>2 administrateurs d'établissement (Hôpital Principal de Dakar, Centre de Santé Roi Baudouin) ;</li>
  *   <li>10 patientes, chacune avec son conjoint, et leurs grossesses (dont 3 à risque, 2 grossesses passées) ;</li>
  *   <li>consultations prénatales aux semaines du calendrier OMS, rendez-vous passés et à venir, alertes, notifications.</li>
  * </ul>
@@ -114,6 +115,11 @@ public class JeuDeDonneesDemo {
             new ProfilSoignant(new Personne("Coumba", "Guèye", LocalDate.of(1985, 2, 14)), 2),
             new ProfilSoignant(new Personne("Seynabou", "Diouf", LocalDate.of(1993, 10, 8)), 3),
             new ProfilSoignant(new Personne("Astou", "Cissé", LocalDate.of(1989, 8, 19)), 4));
+
+    /** Administrateurs d'établissement : ils gèrent les soignants, jamais les dossiers. */
+    private static final List<ProfilSoignant> ADMINS_ETABLISSEMENT = List.of(
+            new ProfilSoignant(new Personne("Babacar", "Thiam", LocalDate.of(1980, 6, 6)), 0),
+            new ProfilSoignant(new Personne("Dieynaba", "Ngom", LocalDate.of(1984, 3, 22)), 1));
 
     private static final List<ProfilPatiente> PATIENTES = List.of(
             new ProfilPatiente(new Personne("Awa", "Ndiaye", LocalDate.of(1996, 5, 12)),
@@ -187,10 +193,12 @@ public class JeuDeDonneesDemo {
         }
         creerRendezVousAVenir(dossiers);
         creerSignalements(dossiers);
+        creerAdminsEtablissement(etablissements);
 
-        log.info("[YAY360] Jeu de démonstration fictif chargé : {} médecins, {} sages-femmes, {} patientes et {} conjoints "
-                        + "(comptes *{}, mot de passe YAY360_DEMO_PASSWORD)",
-                medecins.size(), sagesFemmes.size(), dossiers.size(), dossiers.size(), SUFFIXE_EMAIL);
+        log.info("[YAY360] Jeu de démonstration fictif chargé : {} médecins, {} sages-femmes, {} patientes, {} conjoints "
+                        + "et {} administrateurs d'établissement (comptes *{}, mot de passe YAY360_DEMO_PASSWORD)",
+                medecins.size(), sagesFemmes.size(), dossiers.size(), dossiers.size(), ADMINS_ETABLISSEMENT.size(),
+                SUFFIXE_EMAIL);
     }
 
     // ==================== COMPTES ====================
@@ -221,8 +229,23 @@ public class JeuDeDonneesDemo {
         return soignants;
     }
 
+    private void creerAdminsEtablissement(List<EtablissementSante> etablissements) {
+        for (ProfilSoignant profil : ADMINS_ETABLISSEMENT) {
+            EtablissementSante etablissement = etablissements.get(profil.etablissement());
+            if (etablissement != null) {
+                Utilisateur admin = new Utilisateur();
+                admin.setEtablissementAdministre(etablissement);
+                completerCompte(admin, profil.personne(), RoleUtilisateur.ADMIN_ETABLISSEMENT, null);
+            }
+        }
+    }
+
     private Utilisateur creerCompte(Personne personne, String role, Utilisateur femmeAssociee) {
-        Utilisateur utilisateur = new Utilisateur();
+        return completerCompte(new Utilisateur(), personne, role, femmeAssociee);
+    }
+
+    private Utilisateur completerCompte(Utilisateur utilisateur, Personne personne, String role,
+                                        Utilisateur femmeAssociee) {
         utilisateur.setPrenom(personne.prenom());
         utilisateur.setNom(personne.nom().toUpperCase(Locale.FRENCH));
         utilisateur.setEmail(email(personne));

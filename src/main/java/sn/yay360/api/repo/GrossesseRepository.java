@@ -32,8 +32,6 @@ public interface GrossesseRepository extends JpaRepository<Grossesse, Long> {
 
     long countByStatutAndGrossesseARisqueTrue(String statut);
 
-    List<Grossesse> findByStatutAndGrossesseARisqueTrue(String statut);
-
     /**
      * Grossesses d'un statut donné suivies par un professionnel : établissement de suivi
      * dont il est membre, ou lien de soin direct (RDV assigné, consultation, alerte prise en charge).

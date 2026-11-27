@@ -16,8 +16,6 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
 
     List<RendezVous> findByEtablissementIdOrderByDateHeureAsc(Long etablissementId);
 
-    List<RendezVous> findByStatutOrderByDateHeureAsc(String statut);
-
     List<RendezVous> findByFemmeEnceinteIdAndDateHeureAfterOrderByDateHeureAsc(Long femmeEnceinteId, LocalDateTime apres);
 
     long countByStatut(String statut);

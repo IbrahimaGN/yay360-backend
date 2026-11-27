@@ -2,6 +2,7 @@ package sn.yay360.api.mapper;
 
 import sn.yay360.api.dto.LoginResponse;
 import sn.yay360.api.dto.UtilisateurDto;
+import sn.yay360.api.model.EtablissementSante;
 import sn.yay360.api.model.Utilisateur;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ public class UtilisateurMapper {
         if (utilisateur == null) {
             return null;
         }
+        EtablissementSante etablissement = utilisateur.getEtablissementAdministre();
         return new UtilisateurDto(
                 utilisateur.getId(),
                 utilisateur.getNom(),
@@ -21,7 +23,9 @@ public class UtilisateurMapper {
                 utilisateur.getDateNaissance(),
                 utilisateur.getRole(),
                 utilisateur.getActif(),
-                utilisateur.getDateCreation()
+                utilisateur.getDateCreation(),
+                etablissement != null ? etablissement.getId() : null,
+                etablissement != null ? etablissement.getNom() : null
         );
     }
 

@@ -23,4 +23,7 @@ public class UtilisateurDto {
     private String role;
     private Boolean actif;
     private LocalDateTime dateCreation;
+    /** Établissement géré (administrateur d'établissement uniquement), sinon null. */
+    private Long etablissementAdministreId;
+    private String etablissementAdministreNom;
 }
