@@ -230,6 +230,34 @@ class UtilisateurHelperTest {
     }
 
     @Test
+    void creerAdminEtablissement_refuseUnEtablissementInconnu() {
+        CreerProfessionnelRequest request = demande(RoleUtilisateur.ADMIN_ETABLISSEMENT);
+        request.setEtablissementId(99L);
+
+        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, request))
+                .isInstanceOf(sn.yay360.api.exception.ResourceNotFoundException.class);
+        verify(utilisateurRepository, never()).save(any());
+    }
+
+    @Test
+    void lAdministrateurDeLaPlateformeReactiveToutCompte() {
+        Utilisateur patiente = compte(24L, "khady@exemple.sn", RoleUtilisateur.FEMME_ENCEINTE, null);
+        patiente.setActif(false);
+
+        assertThat(helper.activerCompte(24L, EMAIL_ADMIN).getActif()).isTrue();
+        verify(etablissementRepository, never()).findByProfessionnelsId(any());
+    }
+
+    @Test
+    void adminEtablissement_reactiveUnSoignantQuiNExerceQueChezLui() {
+        Utilisateur sageFemme = compte(25L, "sf@hpd.sn", RoleUtilisateur.SAGE_FEMME, null);
+        sageFemme.setActif(false);
+        when(etablissementRepository.findByProfessionnelsId(25L)).thenReturn(List.of(hopitalPrincipal));
+
+        assertThat(helper.activerCompte(25L, EMAIL_ADMIN_HPD).getActif()).isTrue();
+    }
+
+    @Test
     void listerParRole_refuseUnRoleInconnu() {
         assertThatThrownBy(() -> helper.listerParRole("PIRATE"))
                 .isInstanceOf(IllegalArgumentException.class);
