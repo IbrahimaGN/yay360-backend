@@ -33,7 +33,7 @@ public class CalendrierHelper {
         return genererCalendrier(grossesse);
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
     public CalendrierGrossesseDto obtenirCalendrierParId(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);
         acces.verifierLecture(acces.utilisateur(email), grossesse);

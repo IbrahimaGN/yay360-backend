@@ -12,7 +12,7 @@ import sn.yay360.api.validation.TelephoneSenegal;
 
 import java.time.LocalDate;
 
-/** Création d'un compte professionnel (médecin, sage-femme) ou administrateur par un ADMIN. */
+/** Création d'un compte soignant ou administrateur par un administrateur (plateforme ou établissement). */
 @Getter
 @Setter
 public class CreerProfessionnelRequest {
@@ -41,6 +41,14 @@ public class CreerProfessionnelRequest {
     private LocalDate dateNaissance;
 
     @NotBlank(message = "Le rôle est obligatoire")
-    @Pattern(regexp = "MEDECIN|SAGE_FEMME|ADMIN", message = "Rôle invalide : MEDECIN, SAGE_FEMME ou ADMIN")
+    @Pattern(regexp = "MEDECIN|SAGE_FEMME|ADMIN|ADMIN_ETABLISSEMENT",
+            message = "Rôle invalide : MEDECIN, SAGE_FEMME, ADMIN ou ADMIN_ETABLISSEMENT")
     private String role;
+
+    /**
+     * Établissement de rattachement : obligatoire pour un administrateur d'établissement, facultatif
+     * pour un soignant créé par l'administrateur de la plateforme. Ignoré quand l'auteur est un
+     * administrateur d'établissement : le soignant est alors rattaché à son propre établissement.
+     */
+    private Long etablissementId;
 }

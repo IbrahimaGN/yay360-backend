@@ -58,6 +58,8 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     long countByRole(String role);
 
+    boolean existsByEtablissementAdministreId(Long etablissementId);
+
     @Query("select u.role, count(u) from Utilisateur u group by u.role")
     List<Object[]> compterParRole();
 }

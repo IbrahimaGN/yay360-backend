@@ -93,19 +93,16 @@ public class AlerteHelper {
     }
 
     /**
-     * Admin : toutes les alertes du statut. Soignant : alertes des patientes qu'il suit,
+     * Soignant : alertes des patientes qu'il suit,
      * plus les alertes NOUVELLES des patientes sans suivi (aucune urgence ne reste orpheline).
      */
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
     @Transactional(readOnly = true)
     public List<AlerteDto> listerParStatut(String email, String statut) {
         if (!List.of(StatutAlerte.NOUVELLE, StatutAlerte.PRISE_EN_CHARGE, StatutAlerte.RESOLUE).contains(statut)) {
             throw new IllegalArgumentException("Statut d'alerte inconnu : " + statut);
         }
         Utilisateur utilisateur = acces.utilisateur(email);
-        if (AccesDossierHelper.estAdmin(utilisateur)) {
-            return versDtos(alerteRepository.findByStatutOrderByDateDeclarationDesc(statut));
-        }
         List<AlerteMedicale> alertes = new ArrayList<>(
                 alerteRepository.findByStatutAndGrossesseIdInOrderByDateDeclarationDesc(statut, idsSuivies(utilisateur)));
         if (StatutAlerte.NOUVELLE.equals(statut)) {
@@ -117,14 +114,10 @@ public class AlerteHelper {
     }
 
     /** Alertes URGENTES non résolues. */
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
     @Transactional(readOnly = true)
     public List<AlerteDto> listerUrgentes(String email) {
         Utilisateur utilisateur = acces.utilisateur(email);
-        if (AccesDossierHelper.estAdmin(utilisateur)) {
-            return versDtos(alerteRepository.findByNiveauGraviteAndStatutNotOrderByDateDeclarationDesc(
-                    NiveauGravite.URGENT, StatutAlerte.RESOLUE));
-        }
         List<AlerteMedicale> alertes = new ArrayList<>(alerteRepository
                 .findByNiveauGraviteAndStatutNotAndGrossesseIdInOrderByDateDeclarationDesc(
                         NiveauGravite.URGENT, StatutAlerte.RESOLUE, idsSuivies(utilisateur)));

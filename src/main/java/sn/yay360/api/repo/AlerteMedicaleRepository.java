@@ -11,8 +11,6 @@ public interface AlerteMedicaleRepository extends JpaRepository<AlerteMedicale, 
 
     List<AlerteMedicale> findByGrossesseIdOrderByDateDeclarationDesc(Long grossesseId);
 
-    List<AlerteMedicale> findByStatutOrderByDateDeclarationDesc(String statut);
-
     List<AlerteMedicale> findByNiveauGraviteOrderByDateDeclarationDesc(String niveauGravite);
 
     long countByGrossesseIdAndStatutNot(Long grossesseId, String statut);
@@ -60,8 +58,6 @@ public interface AlerteMedicaleRepository extends JpaRepository<AlerteMedicale, 
 
     List<AlerteMedicale> findByNiveauGraviteAndStatutNotAndGrossesseIdInOrderByDateDeclarationDesc(
             String niveauGravite, String statut, List<Long> grossesseIds);
-
-    List<AlerteMedicale> findByNiveauGraviteAndStatutNotOrderByDateDeclarationDesc(String niveauGravite, String statut);
 
     long countByNiveauGraviteAndStatutNot(String niveauGravite, String statut);
 

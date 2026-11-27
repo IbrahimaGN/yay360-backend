@@ -39,7 +39,7 @@ public class IntelligenceCliniqueHelper {
         return planCpn(grossesseHelper.trouverActiveParEmail(email));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
     public PlanCpnDto planCpnParId(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);
         acces.verifierLecture(acces.utilisateur(email), grossesse);

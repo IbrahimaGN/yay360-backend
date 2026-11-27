@@ -18,13 +18,15 @@ public interface EtablissementService {
 
     List<EtablissementDto> mesEtablissements(String emailProfessionnel);
 
+    EtablissementDto monEtablissement(String emailAdmin);
+
     EtablissementDto creer(EtablissementRequest request);
 
-    EtablissementDto mettreAJour(Long id, EtablissementRequest request);
+    EtablissementDto mettreAJour(String emailAuteur, Long id, EtablissementRequest request);
 
-    EtablissementDto affecterProfessionnel(Long id, AffecterProfessionnelRequest request);
+    EtablissementDto affecterProfessionnel(String emailAuteur, Long id, AffecterProfessionnelRequest request);
 
-    EtablissementDto retirerProfessionnel(Long id, Long professionnelId);
+    EtablissementDto retirerProfessionnel(String emailAuteur, Long id, Long professionnelId);
 
     void desactiver(Long id);
 
