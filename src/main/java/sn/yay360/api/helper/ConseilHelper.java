@@ -52,7 +52,7 @@ public class ConseilHelper {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
     public ConseilDto creer(String emailAuteur, ConseilRequest request) {
         Utilisateur auteur = utilisateurRepository.findByEmailIgnoreCase(emailAuteur)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + emailAuteur));
@@ -74,7 +74,7 @@ public class ConseilHelper {
         return conseilMapper.versDto(conseilRepository.save(conseil));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
     public ConseilDto mettreAJour(Long id, ConseilRequest request) {
         ConseilGrossesse conseil = trouverParId(id);
         conseil.setSemaineDebut(request.getSemaineDebut());
@@ -86,14 +86,14 @@ public class ConseilHelper {
         return conseilMapper.versDto(conseilRepository.save(conseil));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
     public ConseilDto basculerActivation(Long id) {
         ConseilGrossesse conseil = trouverParId(id);
         conseil.setActif(!Boolean.TRUE.equals(conseil.getActif()));
         return conseilMapper.versDto(conseilRepository.save(conseil));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
     public void supprimer(Long id) {
         if (!conseilRepository.existsById(id)) {
             throw new ResourceNotFoundException("Conseil introuvable avec l'id : " + id);

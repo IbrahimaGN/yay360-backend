@@ -82,11 +82,11 @@ class UtilisateurHelperTest {
         return request;
     }
 
-    // ==================== CRÉATION PAR L'ADMINISTRATEUR DE LA PLATEFORME ====================
+    // ==================== CRÉATION DES COMPTES ====================
 
     @Test
     void creerProfessionnel_genereUnMotDePasseTemporaireAChanger() {
-        CreationProfessionnelResponse reponse = helper.creerProfessionnel(EMAIL_ADMIN, demande(RoleUtilisateur.MEDECIN));
+        CreationProfessionnelResponse reponse = helper.creerProfessionnel(EMAIL_ADMIN_HPD, demande(RoleUtilisateur.MEDECIN));
 
         assertThat(reponse.getMotDePasseTemporaire()).hasSizeGreaterThanOrEqualTo(12);
         assertThat(reponse.getUtilisateur().getEmail()).isEqualTo("fatou.sarr@hopital.sn");
@@ -101,7 +101,7 @@ class UtilisateurHelperTest {
         CreerProfessionnelRequest request = demande(RoleUtilisateur.MEDECIN);
         request.setDateNaissance(LocalDate.now().minusYears(19));
 
-        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, request))
+        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN_HPD, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("21 ans");
         verify(utilisateurRepository, never()).save(any());
@@ -111,7 +111,7 @@ class UtilisateurHelperTest {
     void creerProfessionnel_refuseUnEmailDejaUtilise() {
         when(utilisateurRepository.existsByEmailIgnoreCase("fatou.sarr@hopital.sn")).thenReturn(true);
 
-        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, demande(RoleUtilisateur.MEDECIN)))
+        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN_HPD, demande(RoleUtilisateur.MEDECIN)))
                 .isInstanceOf(EmailDejaUtiliseException.class);
     }
 
@@ -137,12 +137,48 @@ class UtilisateurHelperTest {
     }
 
     @Test
+    void lAdministrateurDeLaPlateformeNeCreeAucunSoignant() {
+        for (String role : List.of(RoleUtilisateur.MEDECIN, RoleUtilisateur.SAGE_FEMME)) {
+            CreerProfessionnelRequest request = demande(role);
+            request.setEtablissementId(1L);
+
+            assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, request))
+                    .isInstanceOf(OperationNonAutoriseeException.class)
+                    .hasMessageContaining("uniquement des administrateurs");
+        }
+        verify(utilisateurRepository, never()).save(any());
+    }
+
+    @Test
+    void lAdministrateurDeLaPlateformeCreeUnAutreAdministrateurDeLaPlateforme() {
+        CreationProfessionnelResponse reponse = helper.creerProfessionnel(EMAIL_ADMIN, demande(RoleUtilisateur.ADMIN));
+
+        assertThat(reponse.getUtilisateur().getRole()).isEqualTo(RoleUtilisateur.ADMIN);
+        assertThat(reponse.getUtilisateur().getEtablissementAdministreId()).isNull();
+        verify(etablissementRepository, never()).findById(any());
+    }
+
+    @Test
     void unAdministrateurDeLaPlateformeNEstRattacheAAucunEtablissement() {
         CreerProfessionnelRequest request = demande(RoleUtilisateur.ADMIN);
         request.setEtablissementId(1L);
 
         assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, request))
                 .isInstanceOf(IllegalArgumentException.class);
+        verify(utilisateurRepository, never()).save(any());
+    }
+
+    @Test
+    void unEtablissementNAQuUnSeulAdministrateur() {
+        when(etablissementRepository.findById(1L)).thenReturn(Optional.of(hopitalPrincipal));
+        when(utilisateurRepository.existsByEtablissementAdministreId(1L)).thenReturn(true);
+        CreerProfessionnelRequest request = demande(RoleUtilisateur.ADMIN_ETABLISSEMENT);
+        request.setEtablissementId(1L);
+
+        assertThatThrownBy(() -> helper.creerProfessionnel(EMAIL_ADMIN, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cet établissement a déjà un administrateur");
+        verify(utilisateurRepository, never()).save(any());
     }
 
     // ==================== CRÉATION PAR UN ADMINISTRATEUR D'ÉTABLISSEMENT ====================

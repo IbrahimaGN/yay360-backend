@@ -120,7 +120,7 @@ Gardez ces valeurs dans un **gestionnaire de mots de passe** (Bitwarden, KeePass
    jdbc:postgresql://<hôte>/yay360?sslmode=require
    ```
 
-Il n'y a rien à créer à la main : au premier démarrage, Flyway applique les migrations V1 à V8.
+Il n'y a rien à créer à la main : au premier démarrage, Flyway applique les migrations V1 à V9.
 
 ## 3. Environnement GitHub `production` (dans les 3 dépôts)
 
@@ -193,7 +193,7 @@ Le code est déjà public, et l'image ne contient aucun secret : ils sont fourni
    - **Auto-Deploy** : **No**. Seule la CD GitHub déploie.
 6. Cliquez sur **Deploy Web Service**. Le premier démarrage prend plusieurs minutes. Ouvrez l'onglet **Logs** et attendez :
    ```
-   Successfully applied 8 migrations to schema "public", now at version v8
+   Successfully applied 9 migrations to schema "public", now at version v9
    [YAY360] Jeu de démonstration fictif chargé : 6 médecins, 6 sages-femmes, 10 patientes et 10 conjoints …
    Started YaY360Application in … seconds
    ```
@@ -308,7 +308,7 @@ Les exécutions **CD**, la réponse de `/actuator/info` et le résultat des test
 | Web | Vercel → **Deployments** → déploiement précédent → **⋯ → Promote to Production** (instantané). |
 | Mobile | réinstaller l'APK d'une Release précédente. |
 
-**Base de données.** Flyway n'annule pas une migration. Revenir à une image plus ancienne n'est sûr que si le schéma reste compatible. C'est le cas des migrations V1 à V8 : elles ajoutent des tables, des colonnes ou des contraintes sans rien supprimer ni renommer.
+**Base de données.** Flyway n'annule pas une migration. Revenir à une image plus ancienne n'est sûr que si le schéma reste compatible. C'est le cas des migrations V1 à V9 : elles ajoutent des tables, des colonnes ou des contraintes sans rien supprimer ni renommer.
 
 Pour une future migration qui supprimerait ou renommerait une colonne, procédez en deux livraisons :
 1. ajouter le nouvel élément ;

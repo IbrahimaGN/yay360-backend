@@ -139,14 +139,14 @@ class EtablissementHelperTest {
     }
 
     @Test
-    void affecter_parId_parLAdministrateurDeLaPlateforme() {
+    void affecter_parId_sansDoublon() {
         AffecterProfessionnelRequest request = new AffecterProfessionnelRequest();
         request.setProfessionnelId(20L);
 
-        helper.affecterProfessionnel(EMAIL_ADMIN, 2L, request);
-        helper.affecterProfessionnel(EMAIL_ADMIN, 2L, request); // sans doublon
+        helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, request);
+        helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, request);
 
-        assertThat(roiBaudouin.getProfessionnels()).containsExactly(medecin);
+        assertThat(hopitalPrincipal.getProfessionnels()).containsExactly(medecin);
     }
 
     @Test
@@ -166,15 +166,15 @@ class EtablissementHelperTest {
         AffecterProfessionnelRequest request = new AffecterProfessionnelRequest();
         request.setProfessionnelId(11L);
 
-        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN, 1L, request))
+        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, request))
                 .isInstanceOf(OperationNonAutoriseeException.class);
     }
 
     @Test
     void affecter_exigeUnIdOuUnEmail() {
-        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN, 1L, new AffecterProfessionnelRequest()))
+        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, new AffecterProfessionnelRequest()))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN, 1L, parEmail("  ")))
+        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, parEmail("  ")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -183,7 +183,7 @@ class EtablissementHelperTest {
         AffecterProfessionnelRequest request = new AffecterProfessionnelRequest();
         request.setProfessionnelId(999L);
 
-        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN, 1L, request))
+        assertThatThrownBy(() -> helper.affecterProfessionnel(EMAIL_ADMIN_HPD, 1L, request))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
