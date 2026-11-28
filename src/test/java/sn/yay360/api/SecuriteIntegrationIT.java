@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -91,26 +90,13 @@ class SecuriteIntegrationIT {
         return lire(r).get("id").asLong();
     }
 
-    /** Administrateur d'un établissement dédié aux tests, créé une fois : il crée les soignants. */
-    private static String jetonAdminSoignants;
-
     private String creerProfessionnel(String role, String prefixe) throws Exception {
-        if (jetonAdminSoignants == null) {
-            long etablissement = creerEtablissement("Centre des soignants IT");
-            jetonAdminSoignants = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN_ETABLISSEMENT",
-                    "admsoins", etablissement);
-        }
-        return creerCompte(jetonAdminSoignants, role, prefixe, null);
-    }
-
-    /** Crée un compte par l'administrateur donné, change le mot de passe temporaire et renvoie le jeton. */
-    private String creerCompte(String jetonAuteur, String role, String prefixe, Long etablissementId) throws Exception {
+        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
         String email = prefixe + SUFFIXE + "@hopital.sn";
-        MvcResult r = mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(jetonAuteur))
+        MvcResult r = mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"nom":"Sarr","prenom":"Fatou","email":"%s","telephone":"+221781234567",
-                                 "dateNaissance":"1984-03-01","role":"%s","etablissementId":%s}"""
-                                .formatted(email, role, etablissementId)))
+                                 "dateNaissance":"1984-03-01","role":"%s"}""".formatted(email, role)))
                 .andExpect(status().isCreated()).andReturn();
         String temporaire = connexion(email, lire(r).get("motDePasseTemporaire").asText());
         // Première connexion : le mot de passe temporaire doit être changé avant tout usage
@@ -120,22 +106,6 @@ class SecuriteIntegrationIT {
                                 + "\",\"nouveauMotDePasse\":\"Soignant2026\"}"))
                 .andExpect(status().isOk()).andReturn();
         return lire(change).get("token").asText();
-    }
-
-    private long creerEtablissement(String nom) throws Exception {
-        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
-        MvcResult e = mvc.perform(post("/etablissements").header("Authorization", bearer(admin))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"%s %s","type":"CENTRE_DE_SANTE","adresse":"Dakar",
-                                 "telephone":"+221338000000"}""".formatted(nom, SUFFIXE)))
-                .andExpect(status().isCreated()).andReturn();
-        return lire(e).get("id").asLong();
-    }
-
-    private long idDe(String jeton) throws Exception {
-        MvcResult r = mvc.perform(get("/utilisateurs/profil").header("Authorization", bearer(jeton)))
-                .andExpect(status().isOk()).andReturn();
-        return lire(r).get("id").asLong();
     }
 
     // ==================== AUTHENTIFICATION ====================
@@ -244,8 +214,7 @@ class SecuriteIntegrationIT {
 
     @Test
     void unCompteAvecMotDePasseTemporaireNePeutQueLeChanger() throws Exception {
-        long etablissement = creerEtablissement("Centre temporaire");
-        String admin = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN_ETABLISSEMENT", "admtemp", etablissement);
+        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
         String email = "temp" + SUFFIXE + "@hopital.sn";
         MvcResult r = mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON).content("""
@@ -337,153 +306,5 @@ class SecuriteIntegrationIT {
         String medecin = creerProfessionnel("MEDECIN", "pdf");
         mvc.perform(get("/grossesses/" + grossesse + "/export-pdf").header("Authorization", bearer(medecin)))
                 .andExpect(status().isForbidden());
-    }
-
-    // ==================== DEUX NIVEAUX D'ADMINISTRATION ====================
-
-    @Test
-    void lAdministrateurDeLaPlateformeNAccedeAAucuneDonneeDeSante() throws Exception {
-        long grossesse = declarerGrossesse(inscrirePatiente("superadmin"));
-        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
-
-        for (String route : new String[]{"/grossesses", "/grossesses/a-risque", "/grossesses/" + grossesse,
-                "/grossesses/" + grossesse + "/calendrier", "/grossesses/" + grossesse + "/suivi",
-                "/grossesses/" + grossesse + "/plan-cpn", "/consultations/grossesse/" + grossesse,
-                "/rendez-vous?statut=PLANIFIE", "/alertes?statut=NOUVELLE", "/alertes/urgentes"}) {
-            mvc.perform(get(route).header("Authorization", bearer(admin))).andExpect(status().isForbidden());
-        }
-        // Il garde l'administration : comptes et établissements
-        mvc.perform(get("/utilisateurs").header("Authorization", bearer(admin))).andExpect(status().isOk());
-        mvc.perform(get("/etablissements/tous").header("Authorization", bearer(admin))).andExpect(status().isOk());
-    }
-
-    @Test
-    void lAdministrateurDEtablissementNeGereQueSonEtablissement() throws Exception {
-        long sien = creerEtablissement("Centre A");
-        long autre = creerEtablissement("Centre B");
-        String adminA = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN_ETABLISSEMENT", "adma", sien);
-
-        // Son établissement, et lui seul
-        mvc.perform(get("/etablissements/mon-etablissement").header("Authorization", bearer(adminA)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(sien));
-        mvc.perform(put("/etablissements/" + autre).header("Authorization", bearer(adminA))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"Pris","type":"CENTRE_DE_SANTE","adresse":"Dakar","telephone":"+221338000000"}"""))
-                .andExpect(status().isForbidden());
-        mvc.perform(post("/etablissements").header("Authorization", bearer(adminA))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"Nouveau","type":"CENTRE_DE_SANTE","adresse":"Dakar","telephone":"+221338000000"}"""))
-                .andExpect(status().isForbidden());
-
-        // Il crée un soignant : rattaché d'office à son établissement, même s'il en demande un autre
-        String sageFemme = creerCompte(adminA, "SAGE_FEMME", "sfa", autre);
-        long idSageFemme = idDe(sageFemme);
-        MvcResult soignants = mvc.perform(get("/utilisateurs/mon-etablissement").header("Authorization", bearer(adminA)))
-                .andExpect(status().isOk()).andReturn();
-        assertThat(lire(soignants).findValuesAsText("id")).contains(String.valueOf(idSageFemme));
-        mvc.perform(get("/etablissements/mes-etablissements").header("Authorization", bearer(sageFemme)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(sien));
-
-        // Il ne crée pas d'administrateur et ne voit ni toute la plateforme ni le tableau de bord
-        mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(adminA))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"Faye","prenom":"Modou","email":"pirate%s@hopital.sn","telephone":"+221781234567",
-                                 "dateNaissance":"1984-03-01","role":"ADMIN"}""".formatted(SUFFIXE)))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/utilisateurs").header("Authorization", bearer(adminA))).andExpect(status().isForbidden());
-        mvc.perform(get("/dashboard").header("Authorization", bearer(adminA)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombreEtablissementsActifs").value(1))
-                .andExpect(jsonPath("$.activiteEtablissements[0].etablissementId").value(sien))
-                .andExpect(jsonPath("$.nombreSagesFemmes").value(1))
-                .andExpect(jsonPath("$.nombreAdmins").value(1));
-
-        // Il désactive un soignant de son établissement ; l'administrateur d'un autre ne peut pas le réactiver
-        mvc.perform(put("/utilisateurs/" + idSageFemme + "/desactiver").header("Authorization", bearer(adminA)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.actif").value(false));
-        String adminB = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN_ETABLISSEMENT", "admb", autre);
-        mvc.perform(put("/utilisateurs/" + idSageFemme + "/activer").header("Authorization", bearer(adminB)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void lAdministrateurDEtablissementNAccedeAAucuneDonneeDeSante() throws Exception {
-        long etablissement = creerEtablissement("Centre C");
-        String patiente = inscrirePatiente("admetab");
-        long grossesse = declarerGrossesse(patiente);
-        mvc.perform(put("/grossesses/ma-grossesse/etablissement").header("Authorization", bearer(patiente))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"etablissementId\":" + etablissement + "}"))
-                .andExpect(status().isOk());
-        String admin = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN_ETABLISSEMENT", "admc", etablissement);
-
-        for (String route : new String[]{"/grossesses", "/grossesses/" + grossesse,
-                "/grossesses/" + grossesse + "/export-pdf", "/consultations/grossesse/" + grossesse,
-                "/rendez-vous?statut=PLANIFIE", "/alertes?statut=NOUVELLE"}) {
-            mvc.perform(get(route).header("Authorization", bearer(admin))).andExpect(status().isForbidden());
-        }
-    }
-
-    @Test
-    void lAdministrateurDeLaPlateformeNeCreeNiNAffecteAucunSoignant() throws Exception {
-        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
-        long etablissement = creerEtablissement("Centre D");
-
-        for (String role : new String[]{"MEDECIN", "SAGE_FEMME"}) {
-            mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(admin))
-                            .contentType(MediaType.APPLICATION_JSON).content("""
-                                    {"nom":"Faye","prenom":"Modou","email":"%s%s@hopital.sn","telephone":"+221781234567",
-                                     "dateNaissance":"1984-03-01","role":"%s","etablissementId":%s}"""
-                                    .formatted(role.toLowerCase(), SUFFIXE, role, etablissement)))
-                    .andExpect(status().isForbidden());
-        }
-        long soignant = idDe(creerProfessionnel("MEDECIN", "nonaffecte"));
-        mvc.perform(post("/etablissements/" + etablissement + "/professionnels").header("Authorization", bearer(admin))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"professionnelId\":" + soignant + "}"))
-                .andExpect(status().isForbidden());
-        mvc.perform(delete("/etablissements/" + etablissement + "/professionnels/" + soignant)
-                        .header("Authorization", bearer(admin)))
-                .andExpect(status().isForbidden());
-        // Les conseils et étapes sont réservés aux administrateurs d'établissement et aux soignants
-        mvc.perform(post("/conseils").header("Authorization", bearer(admin))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"semaineDebut":10,"semaineFin":12,"categorie":"NUTRITION","titre":"Fer","contenu":"Test"}"""))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void lAdministrateurDeLaPlateformeCreeUnAutreAdministrateurDeLaPlateforme() throws Exception {
-        String nouveau = creerCompte(connexion("admin@yay360.sn", ADMIN_MDP), "ADMIN", "superadm", null);
-
-        mvc.perform(get("/utilisateurs").header("Authorization", bearer(nouveau))).andExpect(status().isOk());
-        mvc.perform(get("/grossesses").header("Authorization", bearer(nouveau))).andExpect(status().isForbidden());
-    }
-
-    @Test
-    void unEtablissementNAQuUnSeulAdministrateur() throws Exception {
-        long etablissement = creerEtablissement("Centre E");
-        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
-        creerCompte(admin, "ADMIN_ETABLISSEMENT", "adme1", etablissement);
-
-        mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(admin))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"Ka","prenom":"Ndeye","email":"adme2%s@hopital.sn","telephone":"+221781234567",
-                                 "dateNaissance":"1984-03-01","role":"ADMIN_ETABLISSEMENT","etablissementId":%s}"""
-                                .formatted(SUFFIXE, etablissement)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Cet établissement a déjà un administrateur"));
-    }
-
-    @Test
-    void unAdministrateurDEtablissementExigeUnEtablissement() throws Exception {
-        String admin = connexion("admin@yay360.sn", ADMIN_MDP);
-        mvc.perform(post("/utilisateurs/professionnels").header("Authorization", bearer(admin))
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nom":"Ka","prenom":"Ndeye","email":"sansetab%s@hopital.sn","telephone":"+221781234567",
-                                 "dateNaissance":"1984-03-01","role":"ADMIN_ETABLISSEMENT"}""".formatted(SUFFIXE)))
-                .andExpect(status().isBadRequest());
     }
 }

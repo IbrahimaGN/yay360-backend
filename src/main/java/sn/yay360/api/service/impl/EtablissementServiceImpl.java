@@ -42,28 +42,23 @@ public class EtablissementServiceImpl implements EtablissementService {
     }
 
     @Override
-    public EtablissementDto monEtablissement(String emailAdmin) {
-        return etablissementHelper.monEtablissement(emailAdmin);
-    }
-
-    @Override
     public EtablissementDto creer(EtablissementRequest request) {
         return etablissementHelper.creer(request);
     }
 
     @Override
-    public EtablissementDto mettreAJour(String emailAuteur, Long id, EtablissementRequest request) {
-        return etablissementHelper.mettreAJour(emailAuteur, id, request);
+    public EtablissementDto mettreAJour(Long id, EtablissementRequest request) {
+        return etablissementHelper.mettreAJour(id, request);
     }
 
     @Override
-    public EtablissementDto affecterProfessionnel(String emailAuteur, Long id, AffecterProfessionnelRequest request) {
-        return etablissementHelper.affecterProfessionnel(emailAuteur, id, request);
+    public EtablissementDto affecterProfessionnel(Long id, AffecterProfessionnelRequest request) {
+        return etablissementHelper.affecterProfessionnel(id, request);
     }
 
     @Override
-    public EtablissementDto retirerProfessionnel(String emailAuteur, Long id, Long professionnelId) {
-        return etablissementHelper.retirerProfessionnel(emailAuteur, id, professionnelId);
+    public EtablissementDto retirerProfessionnel(Long id, Long professionnelId) {
+        return etablissementHelper.retirerProfessionnel(id, professionnelId);
     }
 
     @Override

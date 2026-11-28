@@ -17,8 +17,7 @@ public final class RegleAgeHelper {
             RoleUtilisateur.CONJOINT, 18,
             RoleUtilisateur.MEDECIN, 21,
             RoleUtilisateur.SAGE_FEMME, 21,
-            RoleUtilisateur.ADMIN, 18,
-            RoleUtilisateur.ADMIN_ETABLISSEMENT, 18
+            RoleUtilisateur.ADMIN, 18
     );
 
     private static final int AGE_MAXIMUM_PLAUSIBLE = 120;

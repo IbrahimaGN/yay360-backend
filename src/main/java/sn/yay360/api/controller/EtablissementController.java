@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,12 +35,6 @@ public class EtablissementController {
         return etablissementService.mesEtablissements(authentication.getName());
     }
 
-    @GetMapping("/mon-etablissement")
-    @Operation(summary = "Établissement que j'administre (Admin d'établissement)")
-    public EtablissementDto monEtablissement(Authentication authentication) {
-        return etablissementService.monEtablissement(authentication.getName());
-    }
-
     @GetMapping("/tous")
     @Operation(summary = "Lister tous les établissements, actifs et inactifs (Admin)")
     public List<EtablissementDto> listerTous() {
@@ -62,24 +55,22 @@ public class EtablissementController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Mettre à jour un établissement (Admin ; Admin d'établissement pour le sien)")
-    public EtablissementDto mettreAJour(Authentication authentication, @PathVariable Long id,
-                                        @Valid @RequestBody EtablissementRequest request) {
-        return etablissementService.mettreAJour(authentication.getName(), id, request);
+    @Operation(summary = "Mettre à jour un établissement (Admin)")
+    public EtablissementDto mettreAJour(@PathVariable Long id, @Valid @RequestBody EtablissementRequest request) {
+        return etablissementService.mettreAJour(id, request);
     }
 
     @PostMapping("/{id}/professionnels")
-    @Operation(summary = "Affecter un soignant à un établissement, par id ou email (Admin ; Admin d'établissement pour le sien)")
-    public EtablissementDto affecterProfessionnel(Authentication authentication, @PathVariable Long id,
+    @Operation(summary = "Affecter un professionnel de santé à un établissement (Admin)")
+    public EtablissementDto affecterProfessionnel(@PathVariable Long id,
                                                    @Valid @RequestBody AffecterProfessionnelRequest request) {
-        return etablissementService.affecterProfessionnel(authentication.getName(), id, request);
+        return etablissementService.affecterProfessionnel(id, request);
     }
 
     @DeleteMapping("/{id}/professionnels/{professionnelId}")
-    @Operation(summary = "Retirer un soignant d'un établissement (Admin ; Admin d'établissement pour le sien)")
-    public EtablissementDto retirerProfessionnel(Authentication authentication, @PathVariable Long id,
-                                                 @PathVariable Long professionnelId) {
-        return etablissementService.retirerProfessionnel(authentication.getName(), id, professionnelId);
+    @Operation(summary = "Retirer un professionnel de santé d'un établissement (Admin)")
+    public EtablissementDto retirerProfessionnel(@PathVariable Long id, @PathVariable Long professionnelId) {
+        return etablissementService.retirerProfessionnel(id, professionnelId);
     }
 
     @PutMapping("/{id}/desactiver")

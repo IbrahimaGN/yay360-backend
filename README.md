@@ -54,13 +54,7 @@ model → repo → service → helper → mapper → dto → controller
   SMTP, ce mot de passe n'est envoyé qu'au professionnel. Le conjoint rejoint le dossier sur invitation.
 - **Cloisonnement** (`AccesDossierHelper`) : un soignant n'accède qu'aux grossesses qu'il **suit** — établissement
   de suivi dont il est membre, ou lien de soin direct (rendez-vous assigné, consultation, alerte prise en charge).
-  Les administrateurs n'ont **aucun accès aux dossiers de santé**.
-- **Deux niveaux d'administration** (`PerimetreAdminHelper`) : l'administrateur de la plateforme crée les
-  établissements, leur administrateur (un seul par établissement) et d'autres administrateurs de la
-  plateforme, gère les comptes et suit le tableau de
-  bord ; il ne crée ni n'affecte aucun soignant. L'administrateur d'établissement gère son établissement, ses
-  soignants (création, affectation, activation, retrait), les conseils et étapes, et voit le tableau de bord
-  limité à son établissement. Il ne désactive pas un soignant qui exerce aussi ailleurs : il le retire.
+  L'administrateur a une lecture de supervision mais jamais le contenu clinique des consultations.
 - **Alertes sans suivi** : l'alerte d'une patiente rattachée à aucune équipe est diffusée à tous les soignants
   **sans donnée identifiante** ; le soignant qui la prend en charge devient son soignant. Une patiente
   rattachée à un établissement où aucun soignant actif n'exerce est traitée comme « sans suivi ».
@@ -160,8 +154,7 @@ Cliquer sur **Authorize** et coller le token JWT obtenu via `POST /auth/login`
 
 | Rôle | Description |
 |---|---|
-| `ADMIN` | Administrateur de la plateforme : établissements, administrateurs d'établissement, comptes, tableau de bord ; aucun accès aux dossiers |
-| `ADMIN_ETABLISSEMENT` | Administrateur d'un établissement : coordonnées, soignants, conseils et étapes, tableau de bord de son établissement ; aucun accès aux dossiers |
+| `ADMIN` | Comptes professionnels, établissements, tableau de bord ; lecture de supervision sans contenu clinique |
 | `FEMME_ENCEINTE` | Déclaration et suivi de grossesse, choix de l'établissement, rendez-vous, signalements, plan CPN |
 | `CONJOINT` | Compte personnel lié au dossier de sa compagne : lecture du suivi, rendez-vous, signalement de symptômes |
 | `SAGE_FEMME` | Patientes suivies : consultations, rendez-vous, prise en charge des alertes |

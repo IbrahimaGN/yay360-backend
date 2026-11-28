@@ -13,7 +13,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final DashboardHelper dashboardHelper;
 
     @Override
-    public DashboardDto genererTableauDeBord(String email) {
-        return dashboardHelper.genererTableauDeBord(email);
+    public DashboardDto genererTableauDeBord() {
+        return dashboardHelper.genererTableauDeBord();
     }
 }

@@ -4,5 +4,5 @@ import sn.yay360.api.dto.DashboardDto;
 
 public interface DashboardService {
 
-    DashboardDto genererTableauDeBord(String email);
+    DashboardDto genererTableauDeBord();
 }

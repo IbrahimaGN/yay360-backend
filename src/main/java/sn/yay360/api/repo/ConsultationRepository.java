@@ -15,9 +15,6 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
 
     long countByGrossesseId(Long grossesseId);
 
-    /** Consultations enregistrées dans un établissement (tableau de bord de l'établissement). */
-    long countByEtablissementId(Long etablissementId);
-
     /** Consultations de la grossesse dont la glycosurie fait partie des valeurs données (règle NICE NG3). */
     long countByGrossesseIdAndGlycosurieIn(Long grossesseId, java.util.Collection<String> glycosuries);
 

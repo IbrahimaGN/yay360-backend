@@ -16,6 +16,8 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
 
     List<RendezVous> findByEtablissementIdOrderByDateHeureAsc(Long etablissementId);
 
+    List<RendezVous> findByStatutOrderByDateHeureAsc(String statut);
+
     List<RendezVous> findByFemmeEnceinteIdAndDateHeureAfterOrderByDateHeureAsc(Long femmeEnceinteId, LocalDateTime apres);
 
     long countByStatut(String statut);
@@ -27,11 +29,6 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
 
     @org.springframework.data.jpa.repository.Query("select r.statut, count(r) from RendezVous r group by r.statut")
     List<Object[]> compterParStatut();
-
-    @org.springframework.data.jpa.repository.Query(
-            "select r.statut, count(r) from RendezVous r where r.etablissement.id = :etablissementId group by r.statut")
-    List<Object[]> compterParStatutDansEtablissement(
-            @org.springframework.data.repository.query.Param("etablissementId") Long etablissementId);
 
     long countByGrossesseIdAndDateHeureAfterAndStatutIn(Long grossesseId, LocalDateTime apres, List<String> statuts);
 

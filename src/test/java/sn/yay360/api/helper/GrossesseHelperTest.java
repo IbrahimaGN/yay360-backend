@@ -391,33 +391,4 @@ class GrossesseHelperTest {
                 .singleElement()
                 .satisfies(dto -> assertThat(dto.getIssue()).isEqualTo(IssueGrossesse.FAUSSE_COUCHE));
     }
-
-    @Test
-    void unSoignantNeVoitQueLesGrossessesQuIlSuit_etParmiEllesCellesARisque() {
-        Utilisateur sageFemme = new Utilisateur();
-        sageFemme.setId(50L);
-        sageFemme.setEmail("sf@yay360.sn");
-        sageFemme.setRole(RoleUtilisateur.SAGE_FEMME);
-        Grossesse simple = grossesseEnCours(200L, false);
-        Grossesse aRisque = grossesseEnCours(201L, true);
-        when(utilisateurRepository.findByEmailIgnoreCase("sf@yay360.sn")).thenReturn(Optional.of(sageFemme));
-        when(grossesseRepository.findSuiviesParProfessionnel(50L, StatutGrossesse.EN_COURS))
-                .thenReturn(List.of(simple, aRisque));
-
-        assertThat(grossesseHelper.listerActives("sf@yay360.sn")).extracting(GrossesseDto::getId)
-                .containsExactly(200L, 201L);
-        assertThat(grossesseHelper.listerARisque("sf@yay360.sn")).extracting(GrossesseDto::getId)
-                .containsExactly(201L);
-    }
-
-    private Grossesse grossesseEnCours(Long id, boolean aRisque) {
-        Grossesse g = new Grossesse();
-        g.setId(id);
-        g.setFemmeEnceinte(femme);
-        g.setDateDernieresRegles(LocalDate.now().minusWeeks(20));
-        g.setDatePrevueAccouchement(LocalDate.now().minusWeeks(20).plusDays(280));
-        g.setStatut(StatutGrossesse.EN_COURS);
-        g.setGrossesseARisque(aRisque);
-        return g;
-    }
 }
