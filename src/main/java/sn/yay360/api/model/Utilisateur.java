@@ -51,11 +51,6 @@ public class Utilisateur {
     @JoinColumn(name = "femme_associee_id", unique = true)
     private Utilisateur femmeAssociee;
 
-    /** Établissement géré : renseigné pour le rôle ADMIN_ETABLISSEMENT uniquement (contrainte en base, V8). */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "etablissement_administre_id")
-    private EtablissementSante etablissementAdministre;
-
     @Column(nullable = false)
     private Boolean actif = true;
 

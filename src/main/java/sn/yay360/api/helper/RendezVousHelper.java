@@ -159,8 +159,8 @@ public class RendezVousHelper {
         return versDtos(rendezVousRepository.findByProfessionnelIdOrderByDateHeureAsc(professionnel.getId()));
     }
 
-    /** Rendez-vous des patientes que suit le soignant connecté. */
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    /** Admin : tous (supervision). Soignant : rendez-vous des patientes qu'il suit. */
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<RendezVousDto> listerParStatut(String email, String statut) {
         if (!TRANSITIONS.containsKey(statut) && !List.of(StatutRendezVous.ANNULE, StatutRendezVous.TERMINE,
@@ -168,6 +168,9 @@ public class RendezVousHelper {
             throw new IllegalArgumentException("Statut de rendez-vous inconnu : " + statut);
         }
         Utilisateur utilisateur = acces.utilisateur(email);
+        if (AccesDossierHelper.estAdmin(utilisateur)) {
+            return versDtos(rendezVousRepository.findByStatutOrderByDateHeureAsc(statut));
+        }
         List<Long> ids = new ArrayList<>(grossesseHelper.grossessesVisibles(utilisateur).stream()
                 .map(Grossesse::getId).toList());
         if (ids.isEmpty()) {
@@ -176,7 +179,7 @@ public class RendezVousHelper {
         return versDtos(rendezVousRepository.findByStatutAndGrossesseIdInOrderByDateHeureAsc(statut, ids));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<RendezVousDto> listerParGrossesse(String email, Long grossesseId) {
         Grossesse grossesse = grossesseHelper.trouverParId(grossesseId);

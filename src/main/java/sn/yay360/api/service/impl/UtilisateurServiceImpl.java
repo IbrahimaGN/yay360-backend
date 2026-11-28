@@ -23,8 +23,8 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public CreationProfessionnelResponse creerProfessionnel(String emailAuteur, CreerProfessionnelRequest request) {
-        return utilisateurHelper.creerProfessionnel(emailAuteur, request);
+    public CreationProfessionnelResponse creerProfessionnel(CreerProfessionnelRequest request) {
+        return utilisateurHelper.creerProfessionnel(request);
     }
 
     @Override
@@ -43,23 +43,18 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public List<UtilisateurDto> listerSoignantsDeMonEtablissement(String emailAuteur) {
-        return utilisateurHelper.listerSoignantsDeMonEtablissement(emailAuteur);
-    }
-
-    @Override
     public UtilisateurDto obtenirParId(Long id) {
         return utilisateurHelper.obtenirParId(id);
     }
 
     @Override
-    public UtilisateurDto desactiverCompte(Long id, String emailAuteur) {
-        return utilisateurHelper.desactiverCompte(id, emailAuteur);
+    public UtilisateurDto desactiverCompte(Long id, Long idAuteur) {
+        return utilisateurHelper.desactiverCompte(id, idAuteur);
     }
 
     @Override
-    public UtilisateurDto activerCompte(Long id, String emailAuteur) {
-        return utilisateurHelper.activerCompte(id, emailAuteur);
+    public UtilisateurDto activerCompte(Long id) {
+        return utilisateurHelper.activerCompte(id);
     }
 
     @Override

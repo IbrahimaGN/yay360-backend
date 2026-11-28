@@ -7,6 +7,7 @@ import sn.yay360.api.exception.OperationNonAutoriseeException;
 import sn.yay360.api.exception.ResourceNotFoundException;
 import sn.yay360.api.mapper.EtablissementMapper;
 import sn.yay360.api.model.EtablissementSante;
+import sn.yay360.api.model.RoleUtilisateur;
 import sn.yay360.api.model.Utilisateur;
 import sn.yay360.api.repo.EtablissementSanteRepository;
 import sn.yay360.api.repo.UtilisateurRepository;
@@ -28,7 +29,6 @@ public class EtablissementHelper {
     private final EtablissementSanteRepository etablissementRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final EtablissementMapper etablissementMapper;
-    private final PerimetreAdminHelper perimetre;
 
     public List<EtablissementDto> listerActifs() {
         return etablissementRepository.findByActifTrue().stream()
@@ -57,12 +57,6 @@ public class EtablissementHelper {
                 .toList();
     }
 
-    /** Établissement géré par l'administrateur d'établissement connecté. */
-    @PreAuthorize("hasAuthority('ADMIN_ETABLISSEMENT')")
-    public EtablissementDto monEtablissement(String emailAdmin) {
-        return etablissementMapper.versDto(perimetre.etablissementAdministre(perimetre.auteur(emailAdmin)));
-    }
-
     @PreAuthorize("hasAuthority('ADMIN')")
     public List<EtablissementDto> listerTous() {
         return etablissementRepository.findAll().stream()
@@ -78,22 +72,22 @@ public class EtablissementHelper {
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ADMIN_ETABLISSEMENT')")
-    public EtablissementDto mettreAJour(String emailAuteur, Long id, EtablissementRequest request) {
-        perimetre.verifierGestionEtablissement(perimetre.auteur(emailAuteur), id);
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public EtablissementDto mettreAJour(Long id, EtablissementRequest request) {
         EtablissementSante etablissement = trouverParId(id);
         appliquerRequest(etablissement, request);
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
     }
 
-    /** Réservé à l'administrateur d'établissement : l'administrateur de la plateforme n'affecte aucun soignant. */
-    @PreAuthorize("hasAuthority('ADMIN_ETABLISSEMENT')")
-    public EtablissementDto affecterProfessionnel(String emailAuteur, Long id, AffecterProfessionnelRequest request) {
-        perimetre.verifierGestionEtablissement(perimetre.auteur(emailAuteur), id);
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public EtablissementDto affecterProfessionnel(Long id, AffecterProfessionnelRequest request) {
         EtablissementSante etablissement = trouverParId(id);
-        Utilisateur professionnel = professionnelDesigne(request);
+        Utilisateur professionnel = utilisateurRepository.findById(request.getProfessionnelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Professionnel introuvable avec l'id : " + request.getProfessionnelId()));
 
-        if (!PerimetreAdminHelper.estSoignant(professionnel)) {
+        boolean estProfessionnelSante = RoleUtilisateur.MEDECIN.equals(professionnel.getRole())
+                || RoleUtilisateur.SAGE_FEMME.equals(professionnel.getRole());
+        if (!estProfessionnelSante) {
             throw new OperationNonAutoriseeException("Seuls les médecins et sages-femmes peuvent être affectés à un établissement");
         }
 
@@ -103,9 +97,8 @@ public class EtablissementHelper {
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
     }
 
-    @PreAuthorize("hasAuthority('ADMIN_ETABLISSEMENT')")
-    public EtablissementDto retirerProfessionnel(String emailAuteur, Long id, Long professionnelId) {
-        perimetre.verifierGestionEtablissement(perimetre.auteur(emailAuteur), id);
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public EtablissementDto retirerProfessionnel(Long id, Long professionnelId) {
         EtablissementSante etablissement = trouverParId(id);
         etablissement.getProfessionnels().removeIf(p -> p.getId().equals(professionnelId));
         return etablissementMapper.versDto(etablissementRepository.save(etablissement));
@@ -123,27 +116,7 @@ public class EtablissementHelper {
         if (!etablissementRepository.existsById(id)) {
             throw new ResourceNotFoundException("Établissement introuvable avec l'id : " + id);
         }
-        if (utilisateurRepository.existsByEtablissementAdministreId(id)) {
-            throw new OperationNonAutoriseeException(
-                    "Cet établissement a un administrateur : désactivez l'établissement ou supprimez d'abord ce compte");
-        }
         etablissementRepository.deleteById(id);
-    }
-
-    /** Soignant désigné par son id ou par son email. */
-    private Utilisateur professionnelDesigne(AffecterProfessionnelRequest request) {
-        if (request.getProfessionnelId() != null) {
-            return utilisateurRepository.findById(request.getProfessionnelId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Professionnel introuvable avec l'id : " + request.getProfessionnelId()));
-        }
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            // Même réponse pour un email inconnu ou non soignant : la recherche ne révèle pas les autres comptes
-            return utilisateurRepository.findByEmailIgnoreCase(AuthHelper.normaliserEmail(request.getEmail()))
-                    .filter(PerimetreAdminHelper::estSoignant)
-                    .orElseThrow(() -> new ResourceNotFoundException("Aucun soignant n'a cet email"));
-        }
-        throw new IllegalArgumentException("Indiquez l'id ou l'email du soignant");
     }
 
     private void appliquerRequest(EtablissementSante etablissement, EtablissementRequest request) {

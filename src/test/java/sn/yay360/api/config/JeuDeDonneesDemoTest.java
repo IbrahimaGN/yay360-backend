@@ -81,7 +81,7 @@ class JeuDeDonneesDemoTest {
     }
 
     @Test
-    void creeSixMedecinsSixSagesFemmesDixPatientesDixConjointsEtDeuxAdminsDEtablissement() {
+    void creeSixMedecinsSixSagesFemmesDixPatientesEtDixConjoints() {
         jeu.charger();
 
         Map<String, Long> parRole = comptesCrees().stream()
@@ -90,8 +90,7 @@ class JeuDeDonneesDemoTest {
                 Map.entry(RoleUtilisateur.MEDECIN, 6L),
                 Map.entry(RoleUtilisateur.SAGE_FEMME, 6L),
                 Map.entry(RoleUtilisateur.FEMME_ENCEINTE, 10L),
-                Map.entry(RoleUtilisateur.CONJOINT, 10L),
-                Map.entry(RoleUtilisateur.ADMIN_ETABLISSEMENT, 2L));
+                Map.entry(RoleUtilisateur.CONJOINT, 10L));
     }
 
     @Test

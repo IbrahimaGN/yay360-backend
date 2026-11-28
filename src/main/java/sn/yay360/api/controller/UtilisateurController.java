@@ -40,19 +40,10 @@ public class UtilisateurController {
 
     @PostMapping("/professionnels")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Créer un compte soignant ou administrateur (Admin, Admin d'établissement)",
-            description = "L'administrateur d'établissement ne crée que des médecins et des sages-femmes, rattachés "
-                    + "à son établissement. Renvoie un mot de passe temporaire, affiché une seule fois, "
-                    + "à changer à la première connexion.")
-    public CreationProfessionnelResponse creerProfessionnel(Authentication authentication,
-                                                            @Valid @RequestBody CreerProfessionnelRequest request) {
-        return utilisateurService.creerProfessionnel(authentication.getName(), request);
-    }
-
-    @GetMapping("/mon-etablissement")
-    @Operation(summary = "Soignants de mon établissement (Admin d'établissement)")
-    public List<UtilisateurDto> soignantsDeMonEtablissement(Authentication authentication) {
-        return utilisateurService.listerSoignantsDeMonEtablissement(authentication.getName());
+    @Operation(summary = "Créer un compte médecin, sage-femme ou administrateur (Admin)",
+            description = "Renvoie un mot de passe temporaire, affiché une seule fois, à changer à la première connexion.")
+    public CreationProfessionnelResponse creerProfessionnel(@Valid @RequestBody CreerProfessionnelRequest request) {
+        return utilisateurService.creerProfessionnel(request);
     }
 
     @GetMapping
@@ -71,15 +62,16 @@ public class UtilisateurController {
     }
 
     @PutMapping("/{id}/desactiver")
-    @Operation(summary = "Désactiver un compte (Admin ; Admin d'établissement pour ses soignants)")
+    @Operation(summary = "Désactiver un compte utilisateur (Admin)")
     public UtilisateurDto desactiver(@PathVariable Long id, Authentication authentication) {
-        return utilisateurService.desactiverCompte(id, authentication.getName());
+        Long idAuteur = idDe(authentication);
+        return utilisateurService.desactiverCompte(id, idAuteur);
     }
 
     @PutMapping("/{id}/activer")
-    @Operation(summary = "Réactiver un compte (Admin ; Admin d'établissement pour ses soignants)")
-    public UtilisateurDto activer(@PathVariable Long id, Authentication authentication) {
-        return utilisateurService.activerCompte(id, authentication.getName());
+    @Operation(summary = "Réactiver un compte utilisateur (Admin)")
+    public UtilisateurDto activer(@PathVariable Long id) {
+        return utilisateurService.activerCompte(id);
     }
 
     @DeleteMapping("/{id}")

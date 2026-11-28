@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
-@Tag(name = "Tableau de bord", description = "Indicateurs agrégés pour les administrateurs (§5.12)")
+@Tag(name = "Tableau de bord", description = "Statistiques globales pour les administrateurs (§5.12)")
 public class DashboardController {
 
     private final DashboardService dashboardService;
 
     @GetMapping
-    @Operation(summary = "Tableau de bord : toute la plateforme (Admin) ou son établissement (Admin d'établissement)")
-    public DashboardDto obtenirTableauDeBord(org.springframework.security.core.Authentication authentication) {
-        return dashboardService.genererTableauDeBord(authentication.getName());
+    @Operation(summary = "Générer le tableau de bord statistique complet (Admin)")
+    public DashboardDto obtenirTableauDeBord() {
+        return dashboardService.genererTableauDeBord();
     }
 }

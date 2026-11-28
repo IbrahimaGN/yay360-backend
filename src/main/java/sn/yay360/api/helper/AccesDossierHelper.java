@@ -19,8 +19,8 @@ import sn.yay360.api.repo.UtilisateurRepository;
  *   <li>Un médecin ou une sage-femme n'accède qu'aux grossesses qu'il <b>suit</b> : établissement
  *       de suivi dont il est membre, ou lien de soin direct (rendez-vous assigné, consultation
  *       enregistrée, alerte prise en charge).</li>
- *   <li>Les administrateurs (plateforme et établissement) n'ont aucun accès aux dossiers : ils gèrent
- *       des établissements et des comptes, pas des patientes.</li>
+ *   <li>L'administrateur a une lecture de supervision (grossesses, rendez-vous, alertes) mais
+ *       jamais le contenu clinique des consultations (diagnostic, prescriptions).</li>
  * </ul>
  */
 @Component
@@ -40,6 +40,10 @@ public class AccesDossierHelper {
     public static boolean estProfessionnel(Utilisateur utilisateur) {
         return RoleUtilisateur.MEDECIN.equals(utilisateur.getRole())
                 || RoleUtilisateur.SAGE_FEMME.equals(utilisateur.getRole());
+    }
+
+    public static boolean estAdmin(Utilisateur utilisateur) {
+        return RoleUtilisateur.ADMIN.equals(utilisateur.getRole());
     }
 
     public boolean estFamille(Utilisateur utilisateur, Grossesse grossesse) {
@@ -66,13 +70,13 @@ public class AccesDossierHelper {
 
     /** Lecture du dossier (identité, calendrier, suivi, rendez-vous, alertes). */
     public void verifierLecture(Utilisateur utilisateur, Grossesse grossesse) {
-        if (estFamille(utilisateur, grossesse) || suit(utilisateur, grossesse)) {
+        if (estAdmin(utilisateur) || estFamille(utilisateur, grossesse) || suit(utilisateur, grossesse)) {
             return;
         }
         throw new OperationNonAutoriseeException("Vous ne suivez pas cette patiente : accès au dossier refusé");
     }
 
-    /** Lecture du contenu clinique (consultations) : famille et soignants qui suivent. */
+    /** Lecture du contenu clinique (consultations) : famille et soignants qui suivent, pas l'admin. */
     public void verifierLectureClinique(Utilisateur utilisateur, Grossesse grossesse) {
         if (estFamille(utilisateur, grossesse) || suit(utilisateur, grossesse)) {
             return;

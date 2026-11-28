@@ -42,7 +42,7 @@ public class EtapeGrossesseHelper {
         return etapeGrossesseMapper.versDto(etape);
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     public EtapeGrossesseDto creer(EtapeGrossesseRequest request) {
         if (etapeGrossesseRepository.existsBySemaine(request.getSemaine())) {
             throw new OperationNonAutoriseeException("Une étape existe déjà pour la semaine " + request.getSemaine());
@@ -52,7 +52,7 @@ public class EtapeGrossesseHelper {
         return etapeGrossesseMapper.versDto(etapeGrossesseRepository.save(etape));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     public EtapeGrossesseDto mettreAJour(Long id, EtapeGrossesseRequest request) {
         EtapeGrossesse etape = etapeGrossesseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Étape de grossesse introuvable avec l'id : " + id));
@@ -60,7 +60,7 @@ public class EtapeGrossesseHelper {
         return etapeGrossesseMapper.versDto(etapeGrossesseRepository.save(etape));
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN_ETABLISSEMENT')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     public void supprimer(Long id) {
         if (!etapeGrossesseRepository.existsById(id)) {
             throw new ResourceNotFoundException("Étape de grossesse introuvable avec l'id : " + id);

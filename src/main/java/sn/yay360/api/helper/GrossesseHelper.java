@@ -117,7 +117,7 @@ public class GrossesseHelper {
 
     // ==================== PROFESSIONNELS ====================
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     @Transactional(readOnly = true)
     public GrossesseDto obtenirParId(String email, Long id) {
         Grossesse grossesse = trouverParId(id);
@@ -125,8 +125,8 @@ public class GrossesseHelper {
         return versDtoCalcule(grossesse);
     }
 
-    /** Grossesses en cours que suit le soignant connecté. */
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    /** Admin : toutes les grossesses en cours (supervision). Soignant : celles qu'il suit. */
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<GrossesseDto> listerActives(String email) {
         return grossessesVisibles(acces.utilisateur(email)).stream()
@@ -134,13 +134,14 @@ public class GrossesseHelper {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME')")
+    @PreAuthorize("hasAnyAuthority('MEDECIN', 'SAGE_FEMME', 'ADMIN')")
     @Transactional(readOnly = true)
     public List<GrossesseDto> listerARisque(String email) {
         Utilisateur utilisateur = acces.utilisateur(email);
-        List<Grossesse> grossesses = grossesseRepository
-                .findSuiviesParProfessionnel(utilisateur.getId(), StatutGrossesse.EN_COURS)
-                .stream().filter(g -> Boolean.TRUE.equals(g.getGrossesseARisque())).toList();
+        List<Grossesse> grossesses = AccesDossierHelper.estAdmin(utilisateur)
+                ? grossesseRepository.findByStatutAndGrossesseARisqueTrue(StatutGrossesse.EN_COURS)
+                : grossesseRepository.findSuiviesParProfessionnel(utilisateur.getId(), StatutGrossesse.EN_COURS)
+                        .stream().filter(g -> Boolean.TRUE.equals(g.getGrossesseARisque())).toList();
         return grossesses.stream().map(this::versDtoCalcule).toList();
     }
 
@@ -271,7 +272,9 @@ public class GrossesseHelper {
     // --- Méthodes internes utilisées aussi par les autres helpers ---
 
     List<Grossesse> grossessesVisibles(Utilisateur utilisateur) {
-        return grossesseRepository.findSuiviesParProfessionnel(utilisateur.getId(), StatutGrossesse.EN_COURS);
+        return AccesDossierHelper.estAdmin(utilisateur)
+                ? grossesseRepository.findByStatut(StatutGrossesse.EN_COURS)
+                : grossesseRepository.findSuiviesParProfessionnel(utilisateur.getId(), StatutGrossesse.EN_COURS);
     }
 
     Grossesse trouverActiveParEmail(String email) {

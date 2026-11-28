@@ -11,7 +11,7 @@ public interface UtilisateurService {
 
     UtilisateurDto obtenirProfil(String email);
 
-    CreationProfessionnelResponse creerProfessionnel(String emailAuteur, CreerProfessionnelRequest request);
+    CreationProfessionnelResponse creerProfessionnel(CreerProfessionnelRequest request);
 
     UtilisateurDto mettreAJourProfil(String email, UpdateProfileRequest request);
 
@@ -19,13 +19,11 @@ public interface UtilisateurService {
 
     List<UtilisateurDto> listerParRole(String role);
 
-    List<UtilisateurDto> listerSoignantsDeMonEtablissement(String emailAuteur);
-
     UtilisateurDto obtenirParId(Long id);
 
-    UtilisateurDto desactiverCompte(Long id, String emailAuteur);
+    UtilisateurDto desactiverCompte(Long id, Long idAuteur);
 
-    UtilisateurDto activerCompte(Long id, String emailAuteur);
+    UtilisateurDto activerCompte(Long id);
 
     void supprimerCompte(Long id, Long idAuteur);
 }

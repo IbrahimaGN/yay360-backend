@@ -11,6 +11,8 @@ public interface AlerteMedicaleRepository extends JpaRepository<AlerteMedicale, 
 
     List<AlerteMedicale> findByGrossesseIdOrderByDateDeclarationDesc(Long grossesseId);
 
+    List<AlerteMedicale> findByStatutOrderByDateDeclarationDesc(String statut);
+
     List<AlerteMedicale> findByNiveauGraviteOrderByDateDeclarationDesc(String niveauGravite);
 
     long countByGrossesseIdAndStatutNot(Long grossesseId, String statut);
@@ -54,30 +56,12 @@ public interface AlerteMedicaleRepository extends JpaRepository<AlerteMedicale, 
             "select a.dateDeclaration, a.datePriseEnCharge from AlerteMedicale a where a.datePriseEnCharge is not null")
     List<Object[]> delaisPriseEnCharge();
 
-    // --- Tableau de bord d'un établissement (alertes des grossesses qu'il suit) ---
-
-    @org.springframework.data.jpa.repository.Query("""
-            select a.statut, count(a) from AlerteMedicale a
-            where a.grossesse.etablissementSuivi.id = :etablissementId group by a.statut""")
-    List<Object[]> compterParStatutDansEtablissement(
-            @org.springframework.data.repository.query.Param("etablissementId") Long etablissementId);
-
-    @org.springframework.data.jpa.repository.Query("""
-            select a.niveauGravite, count(a) from AlerteMedicale a
-            where a.statut <> 'RESOLUE' and a.grossesse.etablissementSuivi.id = :etablissementId group by a.niveauGravite""")
-    List<Object[]> compterNonResoluesParGraviteDansEtablissement(
-            @org.springframework.data.repository.query.Param("etablissementId") Long etablissementId);
-
-    @org.springframework.data.jpa.repository.Query("""
-            select a.dateDeclaration, a.datePriseEnCharge from AlerteMedicale a
-            where a.datePriseEnCharge is not null and a.grossesse.etablissementSuivi.id = :etablissementId""")
-    List<Object[]> delaisPriseEnChargeDansEtablissement(
-            @org.springframework.data.repository.query.Param("etablissementId") Long etablissementId);
-
     List<AlerteMedicale> findByStatutAndGrossesseIdInOrderByDateDeclarationDesc(String statut, List<Long> grossesseIds);
 
     List<AlerteMedicale> findByNiveauGraviteAndStatutNotAndGrossesseIdInOrderByDateDeclarationDesc(
             String niveauGravite, String statut, List<Long> grossesseIds);
+
+    List<AlerteMedicale> findByNiveauGraviteAndStatutNotOrderByDateDeclarationDesc(String niveauGravite, String statut);
 
     long countByNiveauGraviteAndStatutNot(String niveauGravite, String statut);
 
